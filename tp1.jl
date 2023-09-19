@@ -43,34 +43,22 @@ sel = filter(row->row["Country"]=="Argentina",df)
 # ╔═╡ cd61a71d-7d1c-43a4-b930-2b2ea54545d0
 df1 = sel[58:7:1336, [1,6,8]]
 
-<<<<<<< HEAD
 # ╔═╡ 0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
 begin
-weekly_cases = prepend!(diff(df1[!,2]),0)
-weekly_death = prepend!(diff(df1[!,3]),0)
-end
-=======
-# ╔═╡ 34de5066-6402-4bda-8182-5cfe709b317c
-df1[!,2]
->>>>>>> e1e15e7c1829657f416f43435efb710c2ec6ab37
-
-# ╔═╡ 0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
-begin
-weekly_cases = prepend!(diff(df1[!,2]),0)
-weekly_death = prepend!(diff(df1[!,3]),0)
+weekly_cases = prepend!(diff(df1[!,2]),0)  / 45_500_000
+weekly_death = prepend!(diff(df1[!,3]),0)  / 45_500_000
 end
 
 # ╔═╡ 27ac7627-a203-41c0-9711-df1377191a46
 begin
 	plot(weekly_cases)
-	vline!([90])
+	vline!([71])
 end
 
 # ╔═╡ b5ad315d-d196-4f21-8b99-f8a26fa3079a
 begin
 	plot(weekly_death)
 	vline!([71])
-<<<<<<< HEAD
 end
 
 # ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
@@ -78,13 +66,6 @@ begin
 	tf1 = 42
 	tf2 = 90
 end
-=======
-	
-end
-
-# ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
-
->>>>>>> e1e15e7c1829657f416f43435efb710c2ec6ab37
 
 # ╔═╡ ddf46cb1-9f4a-43e7-820a-7722a865f0fe
 md""" ## Modelado: 
@@ -106,6 +87,38 @@ donde $N$ es la cantidad total de individuos de la población. Al haber normaliz
 
 Se recomienda plantear el modelo y resolverlo para datos iniciales de la forma $S_0 = 1-\varepsilon$, $I_0=\varepsilon$ y $R_0= 0$, similares a los que corresponderían al inicio de un brote. Fijando un valor de $\sigma$, mover $\beta$. Luego, fijando $\beta$, mover $\sigma$. En cada caso, analizar el efecto de estos parámetros en la evolución del brote."""
 
+
+# ╔═╡ 4f78c96e-283b-4fcd-a698-91e88265af5f
+function SIR(x, p, t)
+	S, I, R = x
+	β, σ = p
+	dS = -β*S*I
+	dI = β*S*I - σ*I
+	dR = σ*I
+	return [dS, dI, dR]
+end
+
+# ╔═╡ 50e8f9a0-b4f3-4324-a8e0-f06519196bb7
+prob_SIR = ODEProblem(SIR, [0.99999, 0.00001, 0], (0,tf1), [0.5,0.5])
+
+# ╔═╡ 0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
+func_SIR = 
+	build_loss_objective(prob_SIR,Tsit5(),L2Loss(0:tf1, [(1 .-weekly_cases .-weekly_death) weekly_cases weekly_death]),Optimization.AutoFiniteDiff(),maxiters=10000,verbose=false)
+
+# ╔═╡ afbff981-a5fb-4ddb-bfcf-9901774d90ae
+optprob_SIR = OptimizationProblem(func_SIR, [0.5, 0.5,])
+
+# ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
+begin
+	p_SIR = solve(optprob_SIR, BFGS())
+	prob_SIR₂ = remake(prob_SIR, p=p_SIR)
+	sol_SIR₂  = solve(prob_SIR₂)
+end
+
+# ╔═╡ 497283ec-f19e-401f-a70f-ca85826d5116
+begin
+	plot(sol_SIR₂)
+end
 
 # ╔═╡ b96e4d23-c011-407b-92c2-1d2f8133460b
 md"""## Modelo SEIR
@@ -2300,13 +2313,18 @@ version = "1.4.1+0"
 # ╠═6c10386c-3dcb-42d8-b834-85e70fb2b3eb
 # ╠═5a7cdcd2-4e78-47b9-b2bb-09bcfa41b16d
 # ╠═cd61a71d-7d1c-43a4-b930-2b2ea54545d0
-# ╠═34de5066-6402-4bda-8182-5cfe709b317c
 # ╠═0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
 # ╠═27ac7627-a203-41c0-9711-df1377191a46
 # ╠═b5ad315d-d196-4f21-8b99-f8a26fa3079a
 # ╠═dc809057-a289-4ebe-bf7c-4f56de54c562
 # ╟─ddf46cb1-9f4a-43e7-820a-7722a865f0fe
 # ╟─7386a708-0bdc-4bec-8c3e-9c6b5f7d30a6
+# ╠═4f78c96e-283b-4fcd-a698-91e88265af5f
+# ╠═50e8f9a0-b4f3-4324-a8e0-f06519196bb7
+# ╠═0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
+# ╠═afbff981-a5fb-4ddb-bfcf-9901774d90ae
+# ╠═caa7f666-348f-4447-9fec-1db31b5c89d6
+# ╠═497283ec-f19e-401f-a70f-ca85826d5116
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
 # ╟─7ac39268-0555-4906-bd84-e1d1185c7814
