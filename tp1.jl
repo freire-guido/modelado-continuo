@@ -43,6 +43,17 @@ sel = filter(row->row["Country"]=="Argentina",df)
 # ╔═╡ cd61a71d-7d1c-43a4-b930-2b2ea54545d0
 df1 = sel[58:7:1336, [1,6,8]]
 
+<<<<<<< HEAD
+# ╔═╡ 0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
+begin
+weekly_cases = prepend!(diff(df1[!,2]),0)
+weekly_death = prepend!(diff(df1[!,3]),0)
+end
+=======
+# ╔═╡ 34de5066-6402-4bda-8182-5cfe709b317c
+df1[!,2]
+>>>>>>> e1e15e7c1829657f416f43435efb710c2ec6ab37
+
 # ╔═╡ 0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
 begin
 weekly_cases = prepend!(diff(df1[!,2]),0)
@@ -59,6 +70,7 @@ end
 begin
 	plot(weekly_death)
 	vline!([71])
+<<<<<<< HEAD
 end
 
 # ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
@@ -66,6 +78,13 @@ begin
 	tf1 = 42
 	tf2 = 90
 end
+=======
+	
+end
+
+# ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
+
+>>>>>>> e1e15e7c1829657f416f43435efb710c2ec6ab37
 
 # ╔═╡ ddf46cb1-9f4a-43e7-820a-7722a865f0fe
 md""" ## Modelado: 
@@ -2281,6 +2300,7 @@ version = "1.4.1+0"
 # ╠═6c10386c-3dcb-42d8-b834-85e70fb2b3eb
 # ╠═5a7cdcd2-4e78-47b9-b2bb-09bcfa41b16d
 # ╠═cd61a71d-7d1c-43a4-b930-2b2ea54545d0
+# ╠═34de5066-6402-4bda-8182-5cfe709b317c
 # ╠═0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
 # ╠═27ac7627-a203-41c0-9711-df1377191a46
 # ╠═b5ad315d-d196-4f21-8b99-f8a26fa3079a
