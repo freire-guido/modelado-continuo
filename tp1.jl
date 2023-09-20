@@ -99,14 +99,40 @@ function SIR(x, p, t)
 end
 
 # ╔═╡ 50e8f9a0-b4f3-4324-a8e0-f06519196bb7
-prob_SIR = ODEProblem(SIR, [0.99999, 0.00001, 0], (0,tf1), [0.5,0.5])
+prob_SIR = ODEProblem(SIR, [0.9, 0.1, 0], (0,tf2), [0.6,0.3])
+
+# ╔═╡ e2ecc179-2a00-4b9c-9fae-93fd95010e7d
+plot(solve(prob_SIR))
+
+# ╔═╡ 02d4c405-47a6-4608-9a99-19cd69787dee
+function loss_SIR(sol, tf)
+	sol_infec = sol.(1:tf,idxs=1)
+	return sum((sol_infec - weekly_cases[1:tf]).^2)
+end
 
 # ╔═╡ 0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
+begin
+
+	
+
 func_SIR = 
-	build_loss_objective(prob_SIR,Tsit5(),L2Loss(0:tf1, [(1 .-weekly_cases .-weekly_death) weekly_cases weekly_death]),Optimization.AutoFiniteDiff(),maxiters=10000,verbose=false)
+	build_loss_objective(prob_SIR,Tsit5(),
+		(sol) -> loss_SIR(sol,tf2),
+		prob_generator =(prob,q)->remake(prob, u0=q[1:3],p=q[4:5]),
+		Optimization.AutoFiniteDiff(),
+		maxiters=10000,
+		verbose=false)
+end
 
 # ╔═╡ afbff981-a5fb-4ddb-bfcf-9901774d90ae
-optprob_SIR = OptimizationProblem(func_SIR, [0.5, 0.5,])
+begin
+ε=0.00002
+p0vi = [1-ε, ε, 0, 0.3,0.1]
+
+
+optprob_SIR = OptimizationProblem(func_SIR, p0vi, lb=[0.,0.], ub = [100.,100.])
+
+end
 
 # ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
 begin
@@ -115,9 +141,12 @@ begin
 	sol_SIR₂  = solve(prob_SIR₂)
 end
 
+# ╔═╡ 0fa9eb5a-fc2a-47bf-aee7-b9048a55ae6c
+p_SIR
+
 # ╔═╡ 497283ec-f19e-401f-a70f-ca85826d5116
 begin
-	plot(sol_SIR₂)
+	plot(sol_SIR₂, ylimits=(0.,1.))
 end
 
 # ╔═╡ b96e4d23-c011-407b-92c2-1d2f8133460b
@@ -409,16 +438,6 @@ git-tree-sha1 = "e30f2f4e20f7f186dc36529910beaedc60cfa644"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 version = "1.16.0"
 
-[[deps.ChangesOfVariables]]
-deps = ["LinearAlgebra", "Test"]
-git-tree-sha1 = "2fba81a302a7be671aefe194f0525ef231104e7f"
-uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
-version = "0.1.8"
-weakdeps = ["InverseFunctions"]
-
-    [deps.ChangesOfVariables.extensions]
-    ChangesOfVariablesInverseFunctionsExt = "InverseFunctions"
-
 [[deps.CloseOpenIntervals]]
 deps = ["Static", "StaticArrayInterface"]
 git-tree-sha1 = "70232f82ffaab9dc52585e0dd043b5e0c6b714f1"
@@ -565,12 +584,6 @@ git-tree-sha1 = "9e2f36d3c96a820c678f2f1f1782582fcf685bae"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.1"
 
-[[deps.DensityInterface]]
-deps = ["InverseFunctions", "Test"]
-git-tree-sha1 = "80c3e8639e3353e5d2912fb3a1916b8455e2494b"
-uuid = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
-version = "0.4.0"
-
 [[deps.Dierckx]]
 deps = ["Dierckx_jll"]
 git-tree-sha1 = "d1ea9f433781bb6ff504f7d3cb70c4782c504a3a"
@@ -673,11 +686,14 @@ deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "
 git-tree-sha1 = "938fe2981db009f531b6332e31c58e9584a2f9bd"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
 version = "0.25.100"
-weakdeps = ["ChainRulesCore", "DensityInterface"]
 
     [deps.Distributions.extensions]
     DistributionsChainRulesCoreExt = "ChainRulesCore"
     DistributionsDensityInterfaceExt = "DensityInterface"
+
+    [deps.Distributions.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -960,12 +976,6 @@ version = "1.4.0"
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
-[[deps.InverseFunctions]]
-deps = ["Test"]
-git-tree-sha1 = "68772f49f54b479fa88ace904f6127f0a3bb2e46"
-uuid = "3587e190-3f89-42d0-90ee-14403ec27112"
-version = "0.1.12"
-
 [[deps.InvertedIndices]]
 git-tree-sha1 = "0dc7b50b8d436461be01300fd8cd45aa0274b038"
 uuid = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
@@ -1197,12 +1207,16 @@ deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
 git-tree-sha1 = "c3ce8e7420b3a6e071e0fe4745f5d4300e37b13f"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 version = "0.3.24"
-weakdeps = ["ChainRulesCore", "ChangesOfVariables", "InverseFunctions"]
 
     [deps.LogExpFunctions.extensions]
     LogExpFunctionsChainRulesCoreExt = "ChainRulesCore"
     LogExpFunctionsChangesOfVariablesExt = "ChangesOfVariables"
     LogExpFunctionsInverseFunctionsExt = "InverseFunctions"
+
+    [deps.LogExpFunctions.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    ChangesOfVariables = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -1864,11 +1878,14 @@ deps = ["HypergeometricFunctions", "IrrationalConstants", "LogExpFunctions", "Re
 git-tree-sha1 = "f625d686d5a88bcd2b15cd81f18f98186fdc0c9a"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "1.3.0"
-weakdeps = ["ChainRulesCore", "InverseFunctions"]
 
     [deps.StatsFuns.extensions]
     StatsFunsChainRulesCoreExt = "ChainRulesCore"
     StatsFunsInverseFunctionsExt = "InverseFunctions"
+
+    [deps.StatsFuns.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
 [[deps.SteadyStateDiffEq]]
 deps = ["DiffEqBase", "DiffEqCallbacks", "LinearAlgebra", "NLsolve", "Reexport", "SciMLBase"]
@@ -2021,11 +2038,14 @@ deps = ["Dates", "LinearAlgebra", "Random"]
 git-tree-sha1 = "64eb17acef1d9734cf09967539818f38093d9b35"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
 version = "1.16.2"
-weakdeps = ["ConstructionBase", "InverseFunctions"]
 
     [deps.Unitful.extensions]
     ConstructionBaseUnitfulExt = "ConstructionBase"
     InverseFunctionsUnitfulExt = "InverseFunctions"
+
+    [deps.Unitful.weakdeps]
+    ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
 [[deps.UnitfulLatexify]]
 deps = ["LaTeXStrings", "Latexify", "Unitful"]
@@ -2321,9 +2341,12 @@ version = "1.4.1+0"
 # ╟─7386a708-0bdc-4bec-8c3e-9c6b5f7d30a6
 # ╠═4f78c96e-283b-4fcd-a698-91e88265af5f
 # ╠═50e8f9a0-b4f3-4324-a8e0-f06519196bb7
+# ╠═e2ecc179-2a00-4b9c-9fae-93fd95010e7d
+# ╠═02d4c405-47a6-4608-9a99-19cd69787dee
 # ╠═0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
 # ╠═afbff981-a5fb-4ddb-bfcf-9901774d90ae
 # ╠═caa7f666-348f-4447-9fec-1db31b5c89d6
+# ╠═0fa9eb5a-fc2a-47bf-aee7-b9048a55ae6c
 # ╠═497283ec-f19e-401f-a70f-ca85826d5116
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
