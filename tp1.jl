@@ -99,45 +99,44 @@ function SIR(x, p, t)
 end
 
 # ╔═╡ 50e8f9a0-b4f3-4324-a8e0-f06519196bb7
-prob_SIR = ODEProblem(SIR, [0.9, 0.1, 0], (0,tf2), [0.6,0.3])
+begin
+	eps = 0.1
+	
+	prob_SIR = ODEProblem(SIR, [1-eps, eps, 0], (0,tf2), [0.7, 0.1])
+end
 
 # ╔═╡ e2ecc179-2a00-4b9c-9fae-93fd95010e7d
 plot(solve(prob_SIR))
 
 # ╔═╡ 02d4c405-47a6-4608-9a99-19cd69787dee
 function loss_SIR(sol, tf)
-	sol_infec = sol.(1:tf,idxs=1)
-	return sum((sol_infec - weekly_cases[1:tf]).^2)
+	sol_infec = sol.(1:tf,idxs=2)
+	return sum((sol_infec).^2)
+
+	#return sum((sol_infec - weekly_cases[1:tf]).^2)
 end
 
 # ╔═╡ 0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
-begin
-
-	
-
 func_SIR = 
-	build_loss_objective(prob_SIR,Tsit5(),
+build_loss_objective(prob_SIR,AutoTsit5(Rosenbrock23()),
 		(sol) -> loss_SIR(sol,tf2),
-		prob_generator =(prob,q)->remake(prob, u0=q[1:3],p=q[4:5]),
+		prob_generator =(prob,q)->remake(prob, u0=[1-q[1], q[1], 0], p=q[2:3]),
 		Optimization.AutoFiniteDiff(),
-		maxiters=10000,
 		verbose=false)
-end
 
 # ╔═╡ afbff981-a5fb-4ddb-bfcf-9901774d90ae
 begin
-ε=0.00002
-p0vi = [1-ε, ε, 0, 0.3,0.1]
+ε=0.001
+p0vi = [ε, 0.3,0.1]
 
 
-optprob_SIR = OptimizationProblem(func_SIR, p0vi, lb=[0.,0.], ub = [100.,100.])
-
+optprob_SIR = OptimizationProblem(func_SIR, p0vi, lb=zeros(3), ub=[1.,30,30])
 end
 
 # ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
 begin
 	p_SIR = solve(optprob_SIR, BFGS())
-	prob_SIR₂ = remake(prob_SIR, p=p_SIR)
+	prob_SIR₂ = remake(prob_SIR, u0=[1-p_SIR[1], p_SIR[1], 0], p=p_SIR[2:3])
 	sol_SIR₂  = solve(prob_SIR₂)
 end
 
@@ -146,7 +145,7 @@ p_SIR
 
 # ╔═╡ 497283ec-f19e-401f-a70f-ca85826d5116
 begin
-	plot(sol_SIR₂, ylimits=(0.,1.))
+	plot(sol_SIR₂, xlim=(0,tf2))
 end
 
 # ╔═╡ b96e4d23-c011-407b-92c2-1d2f8133460b
@@ -716,6 +715,12 @@ version = "0.6.8"
 git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
 uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 version = "1.0.4"
+
+[[deps.EpollShim_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
+uuid = "2702e6a9-849d-5ed8-8c21-79e8b8f9ee43"
+version = "0.0.20230411+0"
 
 [[deps.ExceptionUnwrapping]]
 deps = ["Test"]
@@ -2071,7 +2076,7 @@ uuid = "19fa3120-7c27-5ec5-8db8-b0b0aa330d6f"
 version = "0.2.0"
 
 [[deps.Wayland_jll]]
-deps = ["Artifacts", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
+deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "ed8d92d9774b077c53e1da50fd81a36af3744c1c"
 uuid = "a2964d1f-97da-50d4-b82a-358c7fce9d89"
 version = "1.21.0+0"
