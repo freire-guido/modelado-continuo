@@ -99,10 +99,10 @@ function SIR(x, p, t)
 end
 
 # ╔═╡ 50e8f9a0-b4f3-4324-a8e0-f06519196bb7
-prob_SIR = ODEProblem(SIR, [1-0.1, 0.1, 0], (0,tf2), [0.7, 0.1])
+prob_SIR = ODEProblem(SIR, [1-0.1, 0.1, 0], (0,tf2), [0.7, 0.1], abstol = 1e-14, reltol = 1e-14)
 
 # ╔═╡ e2ecc179-2a00-4b9c-9fae-93fd95010e7d
-plot(solve(prob_SIR))
+plot(solve(prob_SIR), labels = ["S" "I" "R"])
 
 # ╔═╡ 02d4c405-47a6-4608-9a99-19cd69787dee
 function loss_SIR(sol, tf)
@@ -119,23 +119,21 @@ build_loss_objective(prob_SIR,AutoTsit5(Rosenbrock23()),
 
 # ╔═╡ afbff981-a5fb-4ddb-bfcf-9901774d90ae
 begin
-	p₀ = [rand(), rand(), rand()]
-	optprob_SIR = OptimizationProblem(func_SIR, p₀, lb=zeros(3), ub=[1., 50, 50])
+	p_SIR = rand(3)
+	optprob_SIR = OptimizationProblem(func_SIR, p_SIR, lb=zeros(3), ub=ones(3))
 end
 
 # ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
 begin
-	p_SIR = solve(optprob_SIR, BFGS())
-	prob_SIR₂ = remake(prob_SIR, u0=[1-p_SIR[1], p_SIR[1], 0], p=p_SIR[2:3])
+	p_SIR₂ = solve(optprob_SIR, BFGS())
+	prob_SIR₂ = remake(prob_SIR, u0=[1-p_SIR₂[1], p_SIR₂[1], 0], p=p_SIR₂[2:3])
 	sol_SIR₂  = solve(prob_SIR₂)
 end
 
-# ╔═╡ 0fa9eb5a-fc2a-47bf-aee7-b9048a55ae6c
-p_SIR
-
 # ╔═╡ 497283ec-f19e-401f-a70f-ca85826d5116
 begin
-	plot(sol_SIR₂, xlim=(0,tf2))
+	plot(sol_SIR₂, xlim=(0,tf2), ylim=(0, 0.005), label = ["S" "I" "R"])
+	scatter!(weekly_cases, label = "WHO")
 end
 
 # ╔═╡ b96e4d23-c011-407b-92c2-1d2f8133460b
@@ -2451,7 +2449,6 @@ version = "1.4.1+1"
 # ╠═0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
 # ╠═afbff981-a5fb-4ddb-bfcf-9901774d90ae
 # ╠═caa7f666-348f-4447-9fec-1db31b5c89d6
-# ╠═0fa9eb5a-fc2a-47bf-aee7-b9048a55ae6c
 # ╠═497283ec-f19e-401f-a70f-ca85826d5116
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
