@@ -26,24 +26,6 @@ md"""# TP $n^\circ$ 1: Modelado de datos de COVID.
 **Nota**: La resolución del TP puede hacerse en grupos de a lo sumo 3 personas. Puede hacerse sobre esta misma notebook o en un archivo de código para correr en una terminal de `Julia`, en cuyo casos el análisis puede agregarse en forma de comentarios. """
 
 
-# ╔═╡ 7bfd4205-a13e-4ce4-9a8f-9c1e86414550
-md"""El objetivo de este trabajo es analizar y modelar los datos de la primera etapa del COVID en la Argentina. Para ello, tomaremos los datos proporcionados por la Organización Mundial de la Salud. 
-
-Para empezar, cargar los datos, filtrarlos por país y graficarlos. """
-
-
-
-
-# ╔═╡ c3e2631a-c0f7-438b-94da-c6f85d13b917
-md"""### Filtrado de los datos
-Vamos a realizar las siguientes operaciones, para seleccionar un conjunto de datos adecuado: 
-
-+ Resulta práctico utilizar los modelos en términos de porcentajes, para lo cual normalizaremos los datos asumiendo una población total de 45,5 millones.
-+ Es sabido que el ingreso del virus al país fue relativamente tardío, por lo cual no tiene mucho sentido considerar el período inicial, en el que no se registran casos. Vamos a tomar los datos comenzando cinco días antes del primer registro de casos positivos. 
-+ Los datos muestran bastante ruido. En particular, se observa una caída perceptible en el registro de casos positivos durante los fines de semana. Para reducir un poco la variabilidad, contaremos los casos por semana en lugar de diariamente. 
-+ Sólo consideraremos las primeras dos olas de pandemia. Separar los datos en dos conjuntos: uno que contenga sólo la primera ola (tramo creciente y tramo decreciente) y otro que contenga las primeras dos olas juntas. 
-"""
-
 # ╔═╡ 6c10386c-3dcb-42d8-b834-85e70fb2b3eb
 df = CSV.read("WHO-COVID-19-global-data.csv",DataFrame)
 
@@ -59,22 +41,23 @@ weekly_cases = prepend!(diff(df1[!,2]),0)  / 45_500_000
 weekly_death = prepend!(diff(df1[!,3]),0)  / 45_500_000
 end
 
+# ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
+begin
+	tf1 = 42
+	tf2 = 90
+end
+
 # ╔═╡ 27ac7627-a203-41c0-9711-df1377191a46
 begin
 	plot(weekly_cases)
-	vline!([71])
+	vline!([42], label = "Ola 1")
+	vline!([42], label = "Ola 1")
 end
 
 # ╔═╡ b5ad315d-d196-4f21-8b99-f8a26fa3079a
 begin
 	plot(weekly_death)
 	vline!([71])
-end
-
-# ╔═╡ dc809057-a289-4ebe-bf7c-4f56de54c562
-begin
-	tf1 = 42
-	tf2 = 90
 end
 
 # ╔═╡ ddf46cb1-9f4a-43e7-820a-7722a865f0fe
@@ -131,40 +114,77 @@ $$\left\{\begin{array}{rcl}
 	\dot{I} &=& \gamma E -\sigma I \\
 	\dot{R} &=& \sigma I
 \end{array}\right.$$ 
+
+Implementamos el ODEProblem y usamos BFGS para ajustar los parámetros [ε, β, σ, γ]
 """
 
+# ╔═╡ 055a748a-6ce8-4d41-9d83-cb3867712926
+function SEIR(x, p, t)
+	S, E, I, R = x
+	β, σ, γ = p
+	dS = -β*S*I
+	dE = β*S*I - γ*E
+	dI = γ*E - σ*I
+	dR = σ*I
+	return [dS, dE, dI, dR]
+end
+
 # ╔═╡ 50e8f9a0-b4f3-4324-a8e0-f06519196bb7
-prob_SIR = ODEProblem(SIR, [1-0.1, 0.1, 0], (0,tf2), [0.7, 0.1], abstol = 1e-14, reltol = 1e-14)
+prob_SEIR = ODEProblem(SEIR, [1-0.1, 0.1, 0, 0], (0,90), [0.7, 0.1, 0.1], abstol = 1e-14, reltol = 1e-10)
 
 # ╔═╡ 02d4c405-47a6-4608-9a99-19cd69787dee
-function loss_SIR(sol, tf)
-	sol_infec = sol.(1:tf,idxs=2)
-	return sum((sol_infec - weekly_cases[1:tf]).^2)
+function costo(sol, tf, data, ind)
+	return sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
 end
 
 # ╔═╡ 0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
-func_SIR = 
-build_loss_objective(prob_SIR,AutoTsit5(Rosenbrock23()),
-		(sol) -> loss_SIR(sol,tf2),
-		prob_generator =(prob,q)->remake(prob, u0=[1-q[1], q[1], 0], p=q[2:3]),
+func_SEIR = 
+build_loss_objective(prob_SEIR, AutoTsit5(Rosenbrock23()),
+		(sol) -> costo(sol, 90, weekly_cases, 3),
+		prob_generator =(prob,q) -> remake(prob, u0=[1-q[1]-q[2], q[1], q[2], 0], p=q[3:5]),
 		Optimization.AutoFiniteDiff())
 
 # ╔═╡ afbff981-a5fb-4ddb-bfcf-9901774d90ae
 begin
-	p_SIR = rand(3)
-	optprob_SIR = OptimizationProblem(func_SIR, p_SIR, lb=zeros(3), ub=ones(3))
+	p_SEIR = [0.0001, 0.0001, rand(), rand(), rand()]
+	optprob_SEIR = OptimizationProblem(func_SEIR, p_SEIR, lb=zeros(5), ub=[0.01, 0.01, 50, 50, 50])
 end
 
 # ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
 begin
-	p_SIR₂ = solve(optprob_SIR, BFGS())
-	prob_SIR₂ = remake(prob_SIR, u0=[1-p_SIR₂[1], p_SIR₂[1], 0], p=p_SIR₂[2:3])
-	sol_SIR₂  = solve(prob_SIR₂)
+	p_SEIR₂ = solve(optprob_SEIR, SAMIN(rt = 0.95), maxiters = 20000)
+	prob_SEIR₂ = remake(prob_SEIR,
+		u0 = [1-p_SEIR₂[1] - p_SEIR₂[2], p_SEIR₂[1], p_SEIR₂[2], 0],
+		p = p_SEIR₂[3:5] )
+	sol_SEIR₂  = solve(prob_SEIR₂)
 end
+
+# ╔═╡ e62ec3bd-ac66-4362-a767-8396d7733196
+p_SEIR₂
 
 # ╔═╡ 497283ec-f19e-401f-a70f-ca85826d5116
 begin
-	plot(sol_SIR₂, xlim=(0,tf2), ylim=(0, 0.005), label = ["S" "I" "R"])
+	plot(sol_SEIR₂, xlim=(0,tf2), ylim=(0, 0.005), label = ["S" "E" "I" "R"])
+	plot!(p_SEIR₂[3]*sol_SEIR₂[1].*sol_SEIR₂[3])
+	scatter!(weekly_cases, label = "WHO")
+end
+
+# ╔═╡ f429cb67-02c4-40ff-917c-8b6cd64f5486
+begin
+	optprob_SEIR₃ = OptimizationProblem(func_SEIR, convert(Array{Float64}, p_SEIR₂), lb = zeros(5), ub = [0.01, 0.01, 50, 50, 50])
+	p_SEIR₃ = solve(optprob_SEIR₃, NelderMead(), maxiters = 20000)
+	prob_SEIR₃ = remake(prob_SEIR,
+		u0 = [1-p_SEIR₃[1] - p_SEIR₃[2], p_SEIR₃[1], p_SEIR₃[2], 0],
+		p = p_SEIR₃[3:5] )
+	sol_SEIR₃  = solve(prob_SEIR₃)
+end
+
+# ╔═╡ 28981157-346f-4bba-8d63-a3c60eb44952
+p_SEIR₃
+
+# ╔═╡ c04b93f3-cdbc-4134-b827-e82136297248
+begin
+	plot(sol_SEIR₃, xlim=(0,tf2), ylim=(0, 0.005), label = ["S" "E" "I" "R"])
 	scatter!(weekly_cases, label = "WHO")
 end
 
@@ -647,6 +667,12 @@ version = "0.6.8"
 git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
 uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 version = "1.0.4"
+
+[[deps.EpollShim_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
+uuid = "2702e6a9-849d-5ed8-8c21-79e8b8f9ee43"
+version = "0.0.20230411+0"
 
 [[deps.ExceptionUnwrapping]]
 deps = ["Test"]
@@ -1848,10 +1874,10 @@ uuid = "19fa3120-7c27-5ec5-8db8-b0b0aa330d6f"
 version = "0.2.0"
 
 [[deps.Wayland_jll]]
-deps = ["Artifacts", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
-git-tree-sha1 = "ed8d92d9774b077c53e1da50fd81a36af3744c1c"
+deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
+git-tree-sha1 = "7558e29847e99bc3f04d6569e82d0f5c54460703"
 uuid = "a2964d1f-97da-50d4-b82a-358c7fce9d89"
-version = "1.21.0+0"
+version = "1.21.0+1"
 
 [[deps.Wayland_protocols_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2092,24 +2118,22 @@ version = "3.5.0+0"
 
 [[deps.xkbcommon_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Wayland_jll", "Wayland_protocols_jll", "Xorg_libxcb_jll", "Xorg_xkeyboard_config_jll"]
-git-tree-sha1 = "9ebfc140cc56e8c2156a15ceac2f0302e327ac0a"
+git-tree-sha1 = "9c304562909ab2bab0262639bd4f444d7bc2be37"
 uuid = "d8fb68d0-12a3-5cfd-a85a-d49703b185fd"
-version = "1.4.1+0"
+version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
 # ╠═e8d8fd8e-48ce-11ee-3acb-db987c0fd698
 # ╠═12946327-c68e-45d6-9e4f-2e877a5d868a
 # ╟─c1bd779a-b9a4-488f-bba4-05ee372828e9
-# ╟─7bfd4205-a13e-4ce4-9a8f-9c1e86414550
-# ╟─c3e2631a-c0f7-438b-94da-c6f85d13b917
 # ╠═6c10386c-3dcb-42d8-b834-85e70fb2b3eb
 # ╠═5a7cdcd2-4e78-47b9-b2bb-09bcfa41b16d
 # ╠═cd61a71d-7d1c-43a4-b930-2b2ea54545d0
 # ╠═0aa8005e-7cd1-49eb-8c1c-91cad90ba5d4
+# ╠═dc809057-a289-4ebe-bf7c-4f56de54c562
 # ╠═27ac7627-a203-41c0-9711-df1377191a46
 # ╠═b5ad315d-d196-4f21-8b99-f8a26fa3079a
-# ╠═dc809057-a289-4ebe-bf7c-4f56de54c562
 # ╟─ddf46cb1-9f4a-43e7-820a-7722a865f0fe
 # ╟─7386a708-0bdc-4bec-8c3e-9c6b5f7d30a6
 # ╠═56ea7061-d506-4290-8eb2-058202813d03
@@ -2117,12 +2141,17 @@ version = "1.4.1+0"
 # ╠═19f0bbd1-8c24-464d-bff8-e683fa92ec1f
 # ╠═8f987e43-2eea-459f-abd9-c3f499c9894c
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
+# ╠═055a748a-6ce8-4d41-9d83-cb3867712926
 # ╠═50e8f9a0-b4f3-4324-a8e0-f06519196bb7
 # ╠═02d4c405-47a6-4608-9a99-19cd69787dee
 # ╠═0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
 # ╠═afbff981-a5fb-4ddb-bfcf-9901774d90ae
 # ╠═caa7f666-348f-4447-9fec-1db31b5c89d6
+# ╠═e62ec3bd-ac66-4362-a767-8396d7733196
 # ╠═497283ec-f19e-401f-a70f-ca85826d5116
+# ╠═f429cb67-02c4-40ff-917c-8b6cd64f5486
+# ╠═28981157-346f-4bba-8d63-a3c60eb44952
+# ╠═c04b93f3-cdbc-4134-b827-e82136297248
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
 # ╟─7ac39268-0555-4906-bd84-e1d1185c7814
 # ╠═df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
