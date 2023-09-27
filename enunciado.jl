@@ -4,6 +4,16 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 46a44483-c332-493d-af29-e69d64055943
 using DataFrames, CSV, Plots, DifferentialEquations, Optimization, DiffEqParamEstim,OptimizationOptimJL,Dates, PlutoUI
 
@@ -87,6 +97,37 @@ donde $N$ es la cantidad total de individuos de la población. Al haber normaliz
 
 Se recomienda plantear el modelo y resolverlo para datos iniciales de la forma $S_0 = 1-\varepsilon$, $I_0=\varepsilon$ y $R_0= 0$, similares a los que corresponderían al inicio de un brote. Fijando un valor de $\sigma$, mover $\beta$. Luego, fijando $\beta$, mover $\sigma$. En cada caso, analizar el efecto de estos parámetros en la evolución del brote."""
 
+
+# ╔═╡ 07943f88-1d6c-47ad-acc0-dd71298f1ed5
+@bind ε Slider(0.01:0.01:1)
+
+# ╔═╡ 3d9b2474-8843-478f-85c6-4d503055e7ca
+@bind σ Slider(0.01:0.01:1)
+
+# ╔═╡ 5a44a865-2f9f-452d-804b-e10fc547e8e6
+function SIR(x, p, t)
+	S, I, R = x
+	β, σ = p
+	dS = -β*S*I
+	dI = β*S*I - σ*I
+	dR = σ*I
+	return [dS, dI, dR]
+end
+
+# ╔═╡ 64e7edde-b0b6-40c7-87e5-f72d43e8aca2
+begin
+	@gif for b in 0:0.01:1
+		plot(solve(ODEProblem(SIR, [1 - ε, ε, 0], (0, tf2), [b, σ])), labels = ["S" "I" "R"])
+	end
+end
+
+# ╔═╡ c0c20f91-b330-4c4a-b142-dc00640c87c0
+md"""
+### _Análisis de los parámetros_
+
+El parámetro ε modifica la cantidad inicial de infectados, como es de esperar. Esto aumenta el tiempo y altura de la "ola" de infectados.
+Dado σ, incrementar β tiene un efecto parecido. La ola es más temprana y alta. Fijar β y modificar σ impacta la velocidad de "remoción" de los infectados. Es decir, la ola se aplana rápido.
+"""
 
 # ╔═╡ b96e4d23-c011-407b-92c2-1d2f8133460b
 md"""## Modelo SEIR
@@ -2401,6 +2442,11 @@ version = "1.4.1+1"
 # ╠═05c129bf-fe8f-402b-bd03-9bd42494768f
 # ╟─ddf46cb1-9f4a-43e7-820a-7722a865f0fe
 # ╟─7386a708-0bdc-4bec-8c3e-9c6b5f7d30a6
+# ╠═07943f88-1d6c-47ad-acc0-dd71298f1ed5
+# ╠═3d9b2474-8843-478f-85c6-4d503055e7ca
+# ╠═5a44a865-2f9f-452d-804b-e10fc547e8e6
+# ╠═64e7edde-b0b6-40c7-87e5-f72d43e8aca2
+# ╟─c0c20f91-b330-4c4a-b142-dc00640c87c0
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
 # ╟─07ca02cf-9f0d-46e2-9219-d1e0e78a87ba
