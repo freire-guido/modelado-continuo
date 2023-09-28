@@ -178,8 +178,50 @@ En principio intentaremos ajustar sólo la primera ola de la epidemia, con cada 
 
 
 
-# ╔═╡ df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
+# ╔═╡ 598264fe-5ab5-46d5-8ac6-c9b4bce8d129
+function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothing, ub = nothing, generator = nothing, maxiters = 1000)
+	if x₀ == nothing
+		if generator == nothing
+			error("Si no se especifica x₀, pasame una funcion generator")
+		end
+		x₀ = (ub - lb) ./ 2
+	end
+	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
+	objetivo = build_loss_objective(
+		problema,
+		AutoTsit5(Rosenbrock23()),
+		loss,
+		Optimization.AutoFiniteDiff()
+	)
+	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
+end
 
+# ╔═╡ ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
+function costo(sol, tf, data, ind)
+	return sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
+end
+
+# ╔═╡ df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
+function SEIR(x, p, t)
+	S, E, I, R = x
+	β, σ, γ = p
+	dS = -β*S*I
+	dE = β*S*I - γ*E
+	dI = γ*E - σ*I
+	dR = σ*I
+	return [dS, dE, dI, dR]
+end
+
+# ╔═╡ af570f61-882a-45c9-ba43-c5930fedf31d
+function SEIRS(x, p, t)
+	S, E, I, R = x
+	β, σ, γ, δ = p
+	dS = -β*S*I + δ*R
+	dE = β*S*I - γ*E
+	dI = γ*E - σ*I
+	dR = σ*I - δ*R
+	return [dS, dE, dI, dR]
+end
 
 # ╔═╡ 82c4e128-a488-4032-acaf-2b0549cea8f0
 md"""##### Datos Iniciales
@@ -2451,7 +2493,10 @@ version = "1.4.1+1"
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
 # ╟─07ca02cf-9f0d-46e2-9219-d1e0e78a87ba
 # ╟─7ac39268-0555-4906-bd84-e1d1185c7814
+# ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
+# ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
 # ╠═df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
+# ╠═af570f61-882a-45c9-ba43-c5930fedf31d
 # ╟─82c4e128-a488-4032-acaf-2b0549cea8f0
 # ╟─60ae80a6-2354-4c68-abd8-2cc2f839d4db
 # ╟─4e0aaf37-4150-4526-b0fe-707bd8d9602b

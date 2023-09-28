@@ -106,26 +106,6 @@ $$\left\{\begin{array}{rcl}
 Implementamos el ODEProblem y usamos BFGS para ajustar los parámetros [ε, β, σ, γ]
 """
 
-# ╔═╡ 94e47189-5936-49b9-b4ae-cf01885164aa
-function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothing, ub = nothing, generator = nothing, maxiters = 1000)
-	if x₀ == nothing
-		if generator == nothing
-			error("Si no se especifica x₀, pasame una funcion generator")
-		end
-		x₀ = (ub - lb) ./ 2
-	end
-	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
-	objetivo = build_loss_objective(
-		problema,
-		AutoTsit5(Rosenbrock23()),
-		loss,
-		prob_generator = generator,
-		Optimization.AutoFiniteDiff()
-	)
-	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver, maxiters = maxiters)
-	
-end
-
 # ╔═╡ 055a748a-6ce8-4d41-9d83-cb3867712926
 function SEIR(x, p, t)
 	S, E, I, R = x
@@ -158,8 +138,26 @@ begin
 	optprob_SEIR = OptimizationProblem(func_SEIR, p_SEIR, lb=zeros(5), ub=[0.01, 0.01, 50, 50, 50])
 end
 
+# ╔═╡ 94e47189-5936-49b9-b4ae-cf01885164aa
+function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothing, ub = nothing, generator = nothing, maxiters = 1000)
+	if x₀ == nothing
+		if generator == nothing
+			error("Si no se especifica x₀, pasame una funcion generator")
+		end
+		x₀ = (ub - lb) ./ 2
+	end
+	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
+	objetivo = build_loss_objective(
+		problema,
+		AutoTsit5(Rosenbrock23()),
+		loss,
+		Optimization.AutoFiniteDiff()
+	)
+	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
+end
+
 # ╔═╡ e5512dcf-cba2-4b7f-91bb-9fac7a68a8ee
-optimizar_params(SEIR, [0.98, 0.01, 0.01, 0, 0], tf1, (sol) -> costo(sol, 90, weekly_cases, 3), [0.0001, 0.0001, rand(3)...], SAMIN(), maxiters = 100)
+optimizar_params(SEIR, [0.0001, 0.0001, rand(3)...], tf1, (sol) -> costo(sol, tf1, weekly_cases, 3), BFGS, [0.98, 0.01, 0.01, 0], maxiters = 100, lb = zeros(5), ub = 10ones(5))
 
 # ╔═╡ caa7f666-348f-4447-9fec-1db31b5c89d6
 begin
@@ -2390,12 +2388,12 @@ version = "1.4.1+1"
 # ╠═19f0bbd1-8c24-464d-bff8-e683fa92ec1f
 # ╠═8f987e43-2eea-459f-abd9-c3f499c9894c
 # ╟─b96e4d23-c011-407b-92c2-1d2f8133460b
-# ╠═94e47189-5936-49b9-b4ae-cf01885164aa
 # ╠═055a748a-6ce8-4d41-9d83-cb3867712926
 # ╠═50e8f9a0-b4f3-4324-a8e0-f06519196bb7
 # ╠═02d4c405-47a6-4608-9a99-19cd69787dee
 # ╠═0fa6a06f-3b30-468c-9d7f-5f1462a2bb79
 # ╠═afbff981-a5fb-4ddb-bfcf-9901774d90ae
+# ╠═94e47189-5936-49b9-b4ae-cf01885164aa
 # ╠═e5512dcf-cba2-4b7f-91bb-9fac7a68a8ee
 # ╠═caa7f666-348f-4447-9fec-1db31b5c89d6
 # ╠═e62ec3bd-ac66-4362-a767-8396d7733196
