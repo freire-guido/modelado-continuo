@@ -99,7 +99,7 @@ Se recomienda plantear el modelo y resolverlo para datos iniciales de la forma $
 
 
 # ╔═╡ 07943f88-1d6c-47ad-acc0-dd71298f1ed5
-@bind ε Slider(0.01:0.01:1)
+@bind ε Slider(0.0001:0.0001:0.01)
 
 # ╔═╡ 3d9b2474-8843-478f-85c6-4d503055e7ca
 @bind σ Slider(0.01:0.01:1)
@@ -178,28 +178,13 @@ En principio intentaremos ajustar sólo la primera ola de la epidemia, con cada 
 
 
 
-# ╔═╡ 598264fe-5ab5-46d5-8ac6-c9b4bce8d129
-function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothing, ub = nothing, generator = nothing, maxiters = 1000)
-	if x₀ == nothing
-		if generator == nothing
-			error("Si no se especifica x₀, pasame una funcion generator")
-		end
-		x₀ = (ub - lb) ./ 2
-	end
-	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
-	objetivo = build_loss_objective(
-		problema,
-		AutoTsit5(Rosenbrock23()),
-		loss,
-		Optimization.AutoFiniteDiff()
-	)
-	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
-end
+# ╔═╡ 2209caa7-5bd8-4e4d-b3b1-6d58120e5eae
+md"""
+## _Optimización de los parámetros_
 
-# ╔═╡ ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
-function costo(sol, tf, data, ind)
-	return sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
-end
+Decidimos agrupar el proceso de crear ODEProblem, func objetivo, etc. etc. en una sola funcion ```optimizar_params```, la misma toma al sistema de ecuaciones, parametros iniciales, función de perdida y solver.
+Los valores iniciales del ODEProblem son opcionales. Si no los recibe, hay que pasarle un ```generator```, que el el prob_generator de la función objetivo.
+"""
 
 # ╔═╡ df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
 function SEIR(x, p, t)
@@ -222,6 +207,38 @@ function SEIRS(x, p, t)
 	dR = σ*I - δ*R
 	return [dS, dE, dI, dR]
 end
+
+# ╔═╡ ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
+function costo(tf, data, ind)
+	return (sol) -> sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
+	# Ajusta β*I*S por cuadrados mínimos a los datos
+end
+
+# ╔═╡ 598264fe-5ab5-46d5-8ac6-c9b4bce8d129
+function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothing, ub = nothing, generator = nothing, maxiters = 1000)
+	if x₀ == nothing
+		if generator == nothing
+			error("Si no se especifica x₀, pasame una funcion generator")
+		end
+		x₀ = (ub .- lb) ./ 2
+	end
+	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
+	# este p₀ no tendria que funcionar porque tiene el parametro de ε!!!!
+	objetivo = build_loss_objective(problema,
+		AutoTsit5(Rosenbrock23()),
+		loss,
+		prob_generator = generator,
+		Optimization.AutoFiniteDiff()
+	)
+	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
+end
+
+# ╔═╡ 38f14057-37a7-462f-8558-2fe9ce723183
+optimizar_params(SIR, [0.0001, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 2), SAMIN,
+	lb = zeros(3), ub = [0.1, 10, 10], generator = (prob, q) -> remake(prob, u0 = [1-q[1], q[1], 0], p = q[2:3]), maxiters = 10000)
+
+# ╔═╡ 68820b68-788b-4c10-9958-14c236b5122c
+
 
 # ╔═╡ 82c4e128-a488-4032-acaf-2b0549cea8f0
 md"""##### Datos Iniciales
@@ -2493,10 +2510,13 @@ version = "1.4.1+1"
 # ╟─ec272190-8008-4d4b-916b-dc355fbce8eb
 # ╟─07ca02cf-9f0d-46e2-9219-d1e0e78a87ba
 # ╟─7ac39268-0555-4906-bd84-e1d1185c7814
-# ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
-# ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
+# ╟─2209caa7-5bd8-4e4d-b3b1-6d58120e5eae
 # ╠═df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
 # ╠═af570f61-882a-45c9-ba43-c5930fedf31d
+# ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
+# ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
+# ╠═38f14057-37a7-462f-8558-2fe9ce723183
+# ╠═68820b68-788b-4c10-9958-14c236b5122c
 # ╟─82c4e128-a488-4032-acaf-2b0549cea8f0
 # ╟─60ae80a6-2354-4c68-abd8-2cc2f839d4db
 # ╟─4e0aaf37-4150-4526-b0fe-707bd8d9602b
