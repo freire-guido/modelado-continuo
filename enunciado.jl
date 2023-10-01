@@ -230,15 +230,13 @@ function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothin
 		prob_generator = generator,
 		Optimization.AutoFiniteDiff()
 	)
-	return solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
+	p = solve(OptimizationProblem(objetivo, p₀, lb = lb, ub = ub), solver(), maxiters = maxiters)
+	return generator(problema, p), p
 end
 
 # ╔═╡ 38f14057-37a7-462f-8558-2fe9ce723183
-optimizar_params(SIR, [0.0001, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 2), SAMIN,
+prob_SIR, p_SIR= optimizar_params(SIR, [0.0001, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 2), SAMIN,
 	lb = zeros(3), ub = [0.1, 10, 10], generator = (prob, q) -> remake(prob, u0 = [1-q[1], q[1], 0], p = q[2:3]), maxiters = 10000)
-
-# ╔═╡ 68820b68-788b-4c10-9958-14c236b5122c
-
 
 # ╔═╡ 82c4e128-a488-4032-acaf-2b0549cea8f0
 md"""##### Datos Iniciales
@@ -2516,7 +2514,6 @@ version = "1.4.1+1"
 # ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
 # ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
 # ╠═38f14057-37a7-462f-8558-2fe9ce723183
-# ╠═68820b68-788b-4c10-9958-14c236b5122c
 # ╟─82c4e128-a488-4032-acaf-2b0549cea8f0
 # ╟─60ae80a6-2354-4c68-abd8-2cc2f839d4db
 # ╟─4e0aaf37-4150-4526-b0fe-707bd8d9602b
