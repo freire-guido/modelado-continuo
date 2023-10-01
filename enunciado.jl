@@ -211,7 +211,7 @@ end
 # ╔═╡ ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
 function costo(tf, data, ind)
 	return (sol) -> sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
-	# Ajusta β*I*S por cuadrados mínimos a los datos
+	# Calcula distancia 2 de β*I*S a los datos
 end
 
 # ╔═╡ 598264fe-5ab5-46d5-8ac6-c9b4bce8d129
@@ -222,7 +222,7 @@ function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothin
 		end
 		x₀ = (ub .- lb) ./ 2
 	end
-	problema = ODEProblem(f, x₀, (0, tf), p₀, abstol = 1e-14, reltol = 1e-10)
+	problema = ODEProblem(f, x₀, (0, tf), p₀)
 	# este p₀ no tendria que funcionar porque tiene el parametro de ε!!!!
 	objetivo = build_loss_objective(problema,
 		AutoTsit5(Rosenbrock23()),
@@ -235,8 +235,29 @@ function optimizar_params(f, p₀, tf, loss, solver, x₀ = nothing; lb = nothin
 end
 
 # ╔═╡ 38f14057-37a7-462f-8558-2fe9ce723183
-prob_SIR, p_SIR= optimizar_params(SIR, [0.0001, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 2), SAMIN,
-	lb = zeros(3), ub = [0.1, 10, 10], generator = (prob, q) -> remake(prob, u0 = [1-q[1], q[1], 0], p = q[2:3]), maxiters = 10000)
+begin
+	prob_SIR, p_SIR = optimizar_params(SIR, [0.001, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 2), SAMIN,
+		lb = zeros(3), ub = [0.001, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1], q[1], 0], p = q[2:3]), maxiters = 50000)
+	
+	prob_SEIR, p_SEIR = optimizar_params(SEIR, [0.00005, 0.00005, 0.5, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 3), SAMIN,
+		lb = zeros(5), ub = [0.0005, 0.0005, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1 - q[1] - q[2], q[1], q[2], 0], p = q[3:5]), maxiters = 50000)
+end
+
+# ╔═╡ e620ca89-a20e-4d28-b852-53f651da54fe
+begin
+	sol_SIR = solve(prob_SIR)
+	plot(sol_SIR, xlim = (0, tf2), ylim = (0, 0.005), label = ["S" "I" "R"])
+	plot!(p_SIR[2]*sol_SIR.(1:tf1, idxs = 1).*sol_SIR.(1:tf1, idxs = 2), label = "βIS")
+	scatter!(weekly_cases, label = "WHO")
+end
+
+# ╔═╡ 458733b2-dab8-4c68-873e-970fc1754042
+begin
+	sol_SEIR = solve(prob_SEIR)
+	plot(sol_SEIR, xlim = (0, tf2), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
+	plot!(p_SEIR[3]*sol_SEIR.(1:tf1, idxs = 1).*sol_SEIR.(1:tf1, idxs = 3), label = "βIS")
+	scatter!(weekly_cases, label = "WHO")
+end
 
 # ╔═╡ 82c4e128-a488-4032-acaf-2b0549cea8f0
 md"""##### Datos Iniciales
@@ -2514,6 +2535,8 @@ version = "1.4.1+1"
 # ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
 # ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
 # ╠═38f14057-37a7-462f-8558-2fe9ce723183
+# ╠═e620ca89-a20e-4d28-b852-53f651da54fe
+# ╠═458733b2-dab8-4c68-873e-970fc1754042
 # ╟─82c4e128-a488-4032-acaf-2b0549cea8f0
 # ╟─60ae80a6-2354-4c68-abd8-2cc2f839d4db
 # ╟─4e0aaf37-4150-4526-b0fe-707bd8d9602b
