@@ -357,6 +357,9 @@ begin
 		lb = zeros(6), ub = [0.01, 0.01, 100, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1]-q[2], q[1], q[2], 0], p = q[3:6]), maxiters = 50000)
 end
 
+# ╔═╡ 905ec92e-fa1a-4aa1-a24b-fff734450f3b
+p_SEIRS
+
 # ╔═╡ 2b28a913-602e-49a2-a082-48b452e58b76
 begin
 	sol_SEIRS = solve(prob_SEIRS)
@@ -452,6 +455,47 @@ end
 md"""
 El momento en el que cambia β esta hard-codeado, asi que solamente puede hacerse un análisis a posteriori. No obstante, esto es útil para inferir algunas cualidades de COVID en sus dos fases: como β₂ < β, la tasa de infección fue menor en la segunda ola.
 """
+
+# ╔═╡ b2281891-f1d0-4ee9-8051-0dce0ae25e96
+md"""
+## _subSAMIN_
+Cualquier método de optimización estocástico depende fuertemente de los parámetros iniciales. Una forma de quitar esta dependencia es comenzar la optimización desde varios lugares del espacio de parámetros.
+
+Se obtienen mejores resultados incorporando SAMIN como subrutina de la función de costo, y optimizando con otro SAMIN el p₀.
+"""
+
+# ╔═╡ c496e754-3cc1-4fdb-b125-38f7ce5a4e33
+# begin
+# 	Random.seed!(2023)
+# 	subSAMIN = optimize((p₀) -> costo(tf2, weekly_cases, 3)(solve(optimizar_params(SEIRS, p₀, tf2, costo(tf2, weekly_cases, 3), SAMIN,
+# 		lb = zeros(6), ub = [0.01, 0.01, 100, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1]-q[2], q[1], q[2], 0], p = q[3:6]), maxiters = 1000)[1])),
+# 		zeros(6),
+# 		[0.01, 0.01, 100, 100, 100, 100],
+# 		[0.01, 0.01, 10, 10, 10, 10],
+# 		SAMIN()
+# 	)
+# end
+
+# ╔═╡ d981884a-002a-43ac-8613-24a349217ed5
+# begin
+# 	p_subSEIRS = Optim.minimizer(subSAMIN)
+# 	prob_subSEIRS = ODEProblem(SEIR, [1 - p_subSEIRS[1] - p_subSEIRS[2], p_subSEIRS[1], p_subSEIRS[2], 0], (0, tf2), p_subSEIRS[3:6])
+# end
+
+# ╔═╡ c19c90cb-1526-4707-bd52-0ad191148e3f
+# p_subSEIRS
+
+# ╔═╡ 7d51f7f3-2308-49f1-9479-c17713b32008
+# begin
+# 	sol_subSEIRS = solve(prob_subSEIRS)
+# 	plot(sol_subSEIRS, xlim = (0, tfe), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
+# 	plot!(p_subSEIRS[3]*sol_subSEIRS.(1:tf2, idxs = 1).*sol_subSEIRS.(1:tf2, idxs = 3), label = "βIS")
+# 	scatter!(weekly_cases, label = "WHO")
+# end
+
+# ╔═╡ 454636bb-a51e-4b3e-8687-74a189b8157b
+md"""
+lo dejamos comentado porque tarda bastante (200sec.) en correr y alcanza el mismo minimo que SAMIN"""
 
 # ╔═╡ a681b87d-0d17-4e4d-8173-53ed7770fe71
 md"""
@@ -3252,6 +3296,7 @@ version = "1.4.1+1"
 # ╟─f863edc5-c2b6-4713-b1dc-b7d8736a1742
 # ╟─98c013a6-e3c0-43e0-a193-fb259aad722a
 # ╠═717fb42e-d967-4548-8bba-72f32af5107f
+# ╠═905ec92e-fa1a-4aa1-a24b-fff734450f3b
 # ╠═2b28a913-602e-49a2-a082-48b452e58b76
 # ╟─db38b87b-26f6-48b2-9904-fcfd745686d3
 # ╠═b137dc86-c434-4dcb-9d5f-3fe410eef006
@@ -3265,6 +3310,12 @@ version = "1.4.1+1"
 # ╠═a4f91275-3e2a-453a-be37-e99c7a7f9e27
 # ╠═2997c7a5-6974-410f-9ec0-353b4a208fd1
 # ╟─d0257634-14f7-4f74-b5a0-005c6772c6d9
+# ╟─b2281891-f1d0-4ee9-8051-0dce0ae25e96
+# ╠═c496e754-3cc1-4fdb-b125-38f7ce5a4e33
+# ╠═d981884a-002a-43ac-8613-24a349217ed5
+# ╠═c19c90cb-1526-4707-bd52-0ad191148e3f
+# ╠═7d51f7f3-2308-49f1-9479-c17713b32008
+# ╟─454636bb-a51e-4b3e-8687-74a189b8157b
 # ╟─a681b87d-0d17-4e4d-8173-53ed7770fe71
 # ╟─3bcee522-6c5e-4fd4-b6f1-4b50c1eee7b1
 # ╠═915128de-2cf2-489b-8502-342f99e4a467
