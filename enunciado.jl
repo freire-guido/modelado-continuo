@@ -445,6 +445,9 @@ function SEIRS_C(x, p, t)
 	return [dS, dE, dI, dR]
 end
 
+# ╔═╡ fc2d7c7d-d045-45bb-aa68-db2d90f360d7
+p_SEIRS
+
 # ╔═╡ 7835274f-336f-43fe-b5ad-bebad3a6f67b
 begin
 	Random.seed!(2023)
@@ -454,6 +457,12 @@ end
 
 # ╔═╡ a4f91275-3e2a-453a-be37-e99c7a7f9e27
 p_SEIRS
+
+# ╔═╡ 569cee15-d61a-42ec-96a2-a3b9c70e8e1f
+md"""
+## _Reentrega_
+Ahora el modelo ajusta dos valores distintos de beta para cada ola del virus. Sin embargo, la funcion de costo sigue evaluando γE.
+"""
 
 # ╔═╡ 2997c7a5-6974-410f-9ec0-353b4a208fd1
 begin
@@ -3288,7 +3297,7 @@ version = "1.4.1+1"
 # ╟─2209caa7-5bd8-4e4d-b3b1-6d58120e5eae
 # ╠═df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
 # ╠═af570f61-882a-45c9-ba43-c5930fedf31d
-# ╠═06e28ee0-21e1-45a9-8a55-0c82acc35a2b
+# ╟─06e28ee0-21e1-45a9-8a55-0c82acc35a2b
 # ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
 # ╠═1fb35f50-f6b6-4d83-adc7-bf2b0c33923d
 # ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
@@ -3320,8 +3329,10 @@ version = "1.4.1+1"
 # ╟─1a391e49-eba4-49ca-a16b-f37cc50bb85b
 # ╟─71584073-b24d-4780-bc33-f05785498ade
 # ╠═faa9e056-2c53-4cd3-a24e-15dd593beaa3
+# ╠═fc2d7c7d-d045-45bb-aa68-db2d90f360d7
 # ╠═7835274f-336f-43fe-b5ad-bebad3a6f67b
 # ╠═a4f91275-3e2a-453a-be37-e99c7a7f9e27
+# ╟─569cee15-d61a-42ec-96a2-a3b9c70e8e1f
 # ╠═2997c7a5-6974-410f-9ec0-353b4a208fd1
 # ╟─d0257634-14f7-4f74-b5a0-005c6772c6d9
 # ╟─b2281891-f1d0-4ee9-8051-0dce0ae25e96
