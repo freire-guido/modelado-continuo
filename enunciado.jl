@@ -220,10 +220,22 @@ function SEIRS(x, p, t)
 	return [dS, dE, dI, dR]
 end
 
+# ╔═╡ 06e28ee0-21e1-45a9-8a55-0c82acc35a2b
+md"""
+## _*Corrección reentrega*_
+Agregamos una función de costo y las separamos para ambos casos. La primera es para SIR y la segunda sirve tanto para SEIR como para SEIRS.
+"""
+
 # ╔═╡ ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
-function costo(tf, data, ind)
+function costo_SIR(tf, data, ind)
 	return (sol) -> sum((sol.prob.p[1]*sol.(1:tf, idxs = ind).*sol.(1:tf, idxs = 1) - data[1:tf]).^2)
 	# Calcula distancia 2 de β*I*S a los datos
+end
+
+# ╔═╡ 1fb35f50-f6b6-4d83-adc7-bf2b0c33923d
+function costo_SEIR(tf, data, ind)
+	return (sol) -> sum((sol.prob.p[3]*sol.(1:tf, idxs = ind) - data[1:tf]).^2)
+	# Calcula distancia 2 de γ*E a los datos
 end
 
 # ╔═╡ 598264fe-5ab5-46d5-8ac6-c9b4bce8d129
@@ -254,7 +266,7 @@ Primero usamos ```optimizar_params``` sin generator y un x₀ fijo, como pide el
 """
 
 # ╔═╡ 266b7b99-2856-48d6-bc19-4583d7d360d9
-prob_x0, p_x0 = optimizar_params(SIR, [0.7, 0.7], tf1, costo(tf1, weekly_cases, 2), SAMIN, [0.999, 0.001, 0],
+prob_x0, p_x0 = optimizar_params(SIR, [0.7, 0.7], tf1, costo_SIR(tf1, weekly_cases, 2), SAMIN, [0.999, 0.001, 0],
  		lb = zeros(2), ub = [100, 100], maxiters = 50000)
 
 # ╔═╡ a5ee230f-b90e-48d8-88ef-45ea3a336df9
@@ -289,10 +301,10 @@ Los modelos SEIR y SEIRS son un poquito más complejos, dado que aún fijando $R
 # ╔═╡ 38f14057-37a7-462f-8558-2fe9ce723183
 begin
 	Random.seed!(2023)
-	prob_SIR, p_SIR = optimizar_params(SIR, [0.001, 7, 7], tf1, costo(tf1, weekly_cases, 2), SAMIN,
+	prob_SIR, p_SIR = optimizar_params(SIR, [0.001, 7, 7], tf1, costo_SIR(tf1, weekly_cases, 2), SAMIN,
 		lb = zeros(3), ub = [0.001, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1], q[1], 0], p = q[2:3]), maxiters = 50000)
 	
-	prob_SEIR, p_SEIR = optimizar_params(SEIR, [0.00005, 0.00005, 0.5, 0.5, 0.5], tf1, costo(tf1, weekly_cases, 3), SAMIN,
+	prob_SEIR, p_SEIR = optimizar_params(SEIR, [0.00005, 0.00005, 0.5, 0.5, 0.5], tf1, costo_SEIR(tf1, weekly_cases, 2), SAMIN,
 		lb = zeros(5), ub = [0.0005, 0.0005, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1 - q[1] - q[2], q[1], q[2], 0], p = q[3:5]), maxiters = 50000)
 end
 
@@ -308,15 +320,15 @@ end
 begin
 	sol_SEIR = solve(prob_SEIR)
 	plot(sol_SEIR, xlim = (0, tfe), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
-	plot!(p_SEIR[3]*sol_SEIR.(1:tf1, idxs = 1).*sol_SEIR.(1:tf1, idxs = 3), label = "βIS")
+	plot!(p_SEIR[5]*sol_SEIR.(1:tf1, idxs = 2), label = "γE")
 	scatter!(weekly_cases, label = "WHO")
 end
 
 # ╔═╡ 69251bb0-0cfe-4c48-bad7-06d91d3462af
-costo(tf1, weekly_cases, 2)(sol_SIR)
+costo_SIR(tf1, weekly_cases, 2)(sol_SIR)
 
 # ╔═╡ 6bb59a1c-68af-4407-ad08-a864e0177acf
-costo(tf1, weekly_cases, 3)(sol_SEIR)
+costo_SEIR(tf1, weekly_cases, 2)(sol_SEIR)
 
 # ╔═╡ bc389721-82e8-456f-8fa4-d89a94f5f9a4
 md"""
@@ -353,7 +365,7 @@ Finalmente, con el modelo SEIRS se puede intentar ajustar conjuntamente las dos 
 # ╔═╡ 717fb42e-d967-4548-8bba-72f32af5107f
 begin
 	Random.seed!(2023)
-	prob_SEIRS, p_SEIRS = optimizar_params(SEIRS, [0.01, 0.01, 10, 10, 10, 10], tf2, costo(tf2, weekly_cases, 3), SAMIN,
+	prob_SEIRS, p_SEIRS = optimizar_params(SEIRS, [0.01, 0.01, 10, 10, 10, 10], tf2, costo_SEIR(tf2, weekly_cases, 2), SAMIN,
 		lb = zeros(6), ub = [0.01, 0.01, 100, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1]-q[2], q[1], q[2], 0], p = q[3:6]), maxiters = 50000)
 end
 
@@ -364,7 +376,7 @@ p_SEIRS
 begin
 	sol_SEIRS = solve(prob_SEIRS)
 	plot(sol_SEIRS, xlim = (0, tfe), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
-	plot!(p_SEIRS[3]*sol_SEIRS.(1:tf2, idxs = 1).*sol_SEIRS.(1:tf2, idxs = 3), label = "βIS")
+	plot!(p_SEIRS[5]*sol_SEIRS.(1:tf2, idxs = 2), label = "γE")
 	scatter!(weekly_cases, label = "WHO")
 end
 
@@ -374,16 +386,16 @@ Si bien parece ajustar bien, comparemos el costo de SEIRS con SEIR hasta la segu
 
 # ╔═╡ b137dc86-c434-4dcb-9d5f-3fe410eef006
 begin
-	prob_SEIR2, p_SEIR2 = optimizar_params(SEIR, [0.00005, 0.00005, 0.5, 0.5, 0.5], tf1, costo(tf2, weekly_cases, 3), SAMIN,
+	prob_SEIR2, p_SEIR2 = optimizar_params(SEIR, [0.00005, 0.00005, 0.5, 0.5, 0.5], tf1, costo_SEIR(tf2, weekly_cases, 2), SAMIN,
 		lb = zeros(5), ub = [0.0005, 0.0005, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1 - q[1] - q[2], q[1], q[2], 0], p = q[3:5]), maxiters = 50000)
 	sol_SEIR2 = solve(prob_SEIR2)
 end
 
 # ╔═╡ 961cff65-50b0-4a0d-aea9-c80376f62bfd
-costo(tf2, weekly_cases, 3)(sol_SEIR2)
+costo_SEIR(tf2, weekly_cases, 2)(sol_SEIR2)
 
 # ╔═╡ 2ad1a652-2e2d-49cb-8de5-d47d6af56625
-costo(tf2, weekly_cases, 3)(sol_SEIRS)
+costo_SEIR(tf2, weekly_cases, 2)(sol_SEIRS)
 
 # ╔═╡ b7747fb8-f3b2-4942-bff7-319bc00d60b8
 md"""
@@ -436,7 +448,7 @@ end
 # ╔═╡ 7835274f-336f-43fe-b5ad-bebad3a6f67b
 begin
 	Random.seed!(2023)
-	prob_SEIRS_C, p_SEIRS_C = optimizar_params(SEIRS_C, [p_SEIRS[1:3]..., 1, p_SEIRS[4:6]...], tf2, costo(tf2, weekly_cases, 3), SAMIN,
+	prob_SEIRS_C, p_SEIRS_C = optimizar_params(SEIRS_C, [p_SEIRS[1:3]..., 1, p_SEIRS[4:6]...], tf2, costo_SEIR(tf2, weekly_cases, 2), SAMIN,
 		lb = zeros(7), ub = [0.01, 0.01, 100, 100, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1]-q[2], q[1], q[2], 0], p = q[3:7]), maxiters = 50000)
 end
 
@@ -447,7 +459,7 @@ p_SEIRS
 begin
 	sol_SEIRS_C = solve(prob_SEIRS_C)
 	plot(sol_SEIRS_C, xlim = (0, tfe), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
-	plot!(p_SEIRS_C[3]*sol_SEIRS_C.(1:tf2, idxs = 1).*sol_SEIRS_C.(1:tf2, idxs = 3), label = "βIS")
+	plot!(p_SEIRS_C[5]*sol_SEIRS_C.(1:tf2, idxs = 2), label = "γE")
 	scatter!(weekly_cases, label = "WHO")
 end
 
@@ -467,7 +479,7 @@ Se obtienen mejores resultados incorporando SAMIN como subrutina de la función 
 # ╔═╡ c496e754-3cc1-4fdb-b125-38f7ce5a4e33
 # begin
 # 	Random.seed!(2023)
-# 	subSAMIN = optimize((p₀) -> costo(tf2, weekly_cases, 3)(solve(optimizar_params(SEIRS, p₀, tf2, costo(tf2, weekly_cases, 3), SAMIN,
+# 	subSAMIN = optimize((p₀) -> costo_SEIR(tf2, weekly_cases, 2)(solve(optimizar_params(SEIRS, p₀, tf2, costo_SEIR(tf2, weekly_cases, 2), SAMIN,
 # 		lb = zeros(6), ub = [0.01, 0.01, 100, 100, 100, 100], generator = (prob, q) -> remake(prob, u0 = [1-q[1]-q[2], q[1], q[2], 0], p = q[3:6]), maxiters = 1000)[1])),
 # 		zeros(6),
 # 		[0.01, 0.01, 100, 100, 100, 100],
@@ -489,7 +501,7 @@ Se obtienen mejores resultados incorporando SAMIN como subrutina de la función 
 # begin
 # 	sol_subSEIRS = solve(prob_subSEIRS)
 # 	plot(sol_subSEIRS, xlim = (0, tfe), ylim = (0, 0.005), label = ["S" "E" "I" "R"])
-# 	plot!(p_subSEIRS[3]*sol_subSEIRS.(1:tf2, idxs = 1).*sol_subSEIRS.(1:tf2, idxs = 3), label = "βIS")
+# 	plot!(p_subSEIRS[5]*sol_subSEIRS.(1:tf2, idxs = 2), label = "γE")
 # 	scatter!(weekly_cases, label = "WHO")
 # end
 
@@ -3276,7 +3288,9 @@ version = "1.4.1+1"
 # ╟─2209caa7-5bd8-4e4d-b3b1-6d58120e5eae
 # ╠═df275ce2-59f3-4e1a-aee2-5f6f3a0fed64
 # ╠═af570f61-882a-45c9-ba43-c5930fedf31d
+# ╠═06e28ee0-21e1-45a9-8a55-0c82acc35a2b
 # ╠═ebfa0c3b-d49e-4abc-bf9a-0a9d0152a6dc
+# ╠═1fb35f50-f6b6-4d83-adc7-bf2b0c33923d
 # ╠═598264fe-5ab5-46d5-8ac6-c9b4bce8d129
 # ╟─29ccad98-8799-45dc-b81e-b12d84712c39
 # ╠═266b7b99-2856-48d6-bc19-4583d7d360d9
