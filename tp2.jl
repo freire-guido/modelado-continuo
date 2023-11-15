@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.32
 
 using Markdown
 using InteractiveUtils
@@ -12,44 +12,31 @@ begin
 end
 
 # ╔═╡ f61185ba-7e30-11ee-2b2a-9324ea075d8a
-begin
-	# Función para rellenar los márgenes de una imagen con negro
-	function rellenar_con_negro(imagen)
-	    # Obtener las dimensiones originales de la imagen
-	    alto_original, ancho_original = size(imagen)
-	    
-	    # Calcular los nuevos tamaños ajustados a múltiplos de 16
-	    ancho_nuevo = ceil(Int, ancho_original / 16) * 16
-	    alto_nuevo = ceil(Int, alto_original / 16) * 16
-	    
-	    # Calcular la cantidad de píxeles negros para agregar en cada dimensión
-	    relleno_ancho = ancho_nuevo - ancho_original
-	    relleno_alto = alto_nuevo - alto_original
-		
-	    # Crear una imagen nueva con las dimensiones ajustadas y relleno negro
-	    imagen_nueva = zeros(RGB{N0f8}, alto_nuevo, ancho_nuevo)
-	    
-	    # Copiar la imagen original en el centro de la imagen nueva
-	    imagen_nueva[1:alto_original, 1:ancho_original] = imagen
-	    
-	    return imagen_nueva
-	end
+function rellenar(imagen)
+	alto_original, ancho_original = size(imagen)
+	ancho_nuevo = ceil(Int, ancho_original / 16) * 16
+	alto_nuevo = ceil(Int, alto_original / 16) * 16
 	
-	# Ejemplo de uso:
-	imagen = load("Meisje_met_de_parel.jpg")
-	imagen_rellenada = rellenar_con_negro(imagen)
-	save("imagen_rellenada.jpg", imagen_rellenada)
+	relleno_ancho = ancho_nuevo - ancho_original
+	relleno_alto = alto_nuevo - alto_original
+	imagen_nueva = zeros(RGB{N0f8}, alto_nuevo, ancho_nuevo)
+	imagen_nueva[1:alto_original, 1:ancho_original] = imagen
 	
+	return imagen_nueva
 end
+
+# ╔═╡ 1b8b1f59-c169-41dc-ba29-8ac0cffbcbe6
+imagen = load("Meisje_met_de_parel.jpg")
 
 # ╔═╡ 3d7e658d-e032-452e-b9b7-219bd1ef6625
 function conv(mat, ker, stride)
-	res = zeros( convert(Tuple{Int, Int}, 1 .+ (size(mat) .- size(ker)) ./ stride ))
+	res = zeros(convert(Tuple{Int, Int}, 1 .+ (size(mat) .- size(ker))./stride))
 	for i in 1:(size(res)[1])
 		for j in 1:(size(res)[2])
 			im = size(ker)[1] + (i-1)*stride
 			jm = size(ker)[2] + (j-1)*stride
-			res[i,j] = sum(mat[(im - size(ker)[1]+1): (im)  , (jm-size(ker)[2]+1) : (jm)  ] .* ker)
+			res[i,j] = sum(mat[(im - size(ker)[1]+1):(im),
+				(jm-size(ker)[2]+1):(jm)].*ker)
 		end
 	end		
 	return res
@@ -57,7 +44,7 @@ end
 
 # ╔═╡ 76a71f61-af2c-42a0-99e6-0ffdd968c94d
 function primera_etapa(image)
-	image2 = rellenar_con_negro(image)
+	image2 = rellenar(image)
 	canales = channelview(image2)
 	
 	ker=[1/4 1/4; 1/4 1/4]
@@ -67,25 +54,97 @@ function primera_etapa(image)
 	return canales[1,:,:], Cb, Cr
 end
 
-# ╔═╡ 9c5543ca-b623-4fe7-aae3-4c264f8736be
-conv(ones(16,16), [1/4 1/4 ; 1/4 1/4], 2)
-
 # ╔═╡ b7419080-dc36-4da0-8c07-161cc048ce00
 function inversa(Y, Cb, Cr)
 	return Y, repeat(Cb, inner=(2,2)), repeat(Cr, inner=(2,2))
 end
 
+# ╔═╡ 5a96ade7-13df-421e-b8e9-38b8d0b7cad9
+Y, Cb, Cr = primera_etapa(imagen)
+
 # ╔═╡ 506d18e3-2cc9-463c-9596-3a862e049876
-RGB.(inversa(primera_etapa(imagen)...)...)
+RGB.(inversa(Y, Cb, Cr)...)
 
 # ╔═╡ 61833f3d-2d8e-498b-87b8-60620781f5f6
-function transf_por_bloques(M)
-	for i in 1:size(M)[1]/8
-		for j in 1:size(M)[2]/8
+function transfbloques(M)
+	for i in 1:Int(size(M)[1]/8)
+		for j in 1:Int(size(M)[2]/8)
 			dct!(view(M, (8*i-7):(8*i), (8*j-7):(8*j)))
 		end
 	end
 end
+
+# ╔═╡ d562f1c9-4612-41b6-9c92-06d9efd139a1
+function invbloques(M)
+	for i in 1:Int(size(M)[1]/8)
+		for j in 1:Int(size(M)[2]/8)
+			idct!(view(M, (8*i-7):(8*i), (8*j-7):(8*j)))
+		end
+	end
+end
+
+# ╔═╡ 55152b42-087e-4b24-81e6-52c84f3043f3
+function transfimagen(Y, Cb, Cr)
+	transfbloques(Y)
+	transfbloques(Cb)
+	transfbloques(Cr)
+end
+
+# ╔═╡ 7d7c4d8b-af4d-47b1-87d4-f15b09f9af58
+CB = copy(Cb)
+
+# ╔═╡ b033f2f9-1cc6-4795-8a0e-a3c26a003571
+RGB.(Cb, Cb, Cb)
+
+# ╔═╡ ffae4c28-9cad-4e0e-a1f6-bcd69d7a6966
+transfbloques(Cb)
+
+# ╔═╡ e4ea42b8-d9dd-42e7-a8e3-135e69540270
+RGB.(Cb, Cb, Cb)
+
+# ╔═╡ 71729abc-ceb7-4955-86a5-02e59a33128a
+CB == Cb
+
+# ╔═╡ ed5299ff-4792-4ba9-b67a-c95757722013
+invbloques(Cb)
+
+# ╔═╡ 5eb14954-8347-4624-ba5e-de05603484ed
+RGB.(Cb, Cb, Cb)
+
+# ╔═╡ 98d551be-d54f-4b0b-bbda-2768ab8d744a
+begin
+	quant=[16 11 10 16 24 40 51 61;
+		12 12 14 19 26 58 60 55;
+		14 13 16 24 40 57 69 56;
+		14 17 22 29 51 87 80 62;
+		18 22 37 56 68 109 103 77;
+		24 35 55 64 81 104 113 92;
+		49 64 78 87 103 121 120 101;
+		72 92 95 98 112 100 103 99] # No es simetrica
+	function divquant(M)
+		for i in 1:Int(size(M)[1]/8)
+			for j in 1:Int(size(M)[2]/8)
+				M[(8*i-7):(8*i), (8*j-7):(8*j)] ./= quant
+			end
+		end
+	end
+	function mulquant(M)
+		for i in 1:Int(size(M)[1]/8)
+			for j in 1:Int(size(M)[2]/8)
+				M[(8*i-7):(8*i), (8*j-7):(8*j)] .*= quant
+			end
+		end
+	end
+end
+
+# ╔═╡ 9b39eae5-eab4-4dce-96c6-d30a5965b113
+mulquant(Cb)
+
+# ╔═╡ 90fe03d1-af10-4e90-9902-7d2d3029c90b
+RGB.(Cb, Cb, Cb)
+
+# ╔═╡ 4e1fe80f-7889-4559-8840-f5cf4dbffe74
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1098,11 +1157,25 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╔═╡ Cell order:
 # ╠═5e642998-ae9b-4c07-a4c7-b892a43c632a
 # ╠═f61185ba-7e30-11ee-2b2a-9324ea075d8a
+# ╠═1b8b1f59-c169-41dc-ba29-8ac0cffbcbe6
 # ╠═3d7e658d-e032-452e-b9b7-219bd1ef6625
 # ╠═76a71f61-af2c-42a0-99e6-0ffdd968c94d
-# ╠═9c5543ca-b623-4fe7-aae3-4c264f8736be
 # ╠═b7419080-dc36-4da0-8c07-161cc048ce00
+# ╠═5a96ade7-13df-421e-b8e9-38b8d0b7cad9
 # ╠═506d18e3-2cc9-463c-9596-3a862e049876
 # ╠═61833f3d-2d8e-498b-87b8-60620781f5f6
+# ╠═d562f1c9-4612-41b6-9c92-06d9efd139a1
+# ╠═55152b42-087e-4b24-81e6-52c84f3043f3
+# ╠═7d7c4d8b-af4d-47b1-87d4-f15b09f9af58
+# ╠═b033f2f9-1cc6-4795-8a0e-a3c26a003571
+# ╠═ffae4c28-9cad-4e0e-a1f6-bcd69d7a6966
+# ╠═e4ea42b8-d9dd-42e7-a8e3-135e69540270
+# ╠═71729abc-ceb7-4955-86a5-02e59a33128a
+# ╠═ed5299ff-4792-4ba9-b67a-c95757722013
+# ╠═5eb14954-8347-4624-ba5e-de05603484ed
+# ╠═98d551be-d54f-4b0b-bbda-2768ab8d744a
+# ╠═9b39eae5-eab4-4dce-96c6-d30a5965b113
+# ╠═90fe03d1-af10-4e90-9902-7d2d3029c90b
+# ╠═4e1fe80f-7889-4559-8840-f5cf4dbffe74
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
