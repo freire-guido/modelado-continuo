@@ -9,6 +9,7 @@ begin
 	using Images
 	using ImageMagick
 	using FFTW
+	using StatsBase
 end
 
 # ╔═╡ f61185ba-7e30-11ee-2b2a-9324ea075d8a
@@ -143,8 +144,21 @@ mulquant(Cb)
 # ╔═╡ 90fe03d1-af10-4e90-9902-7d2d3029c90b
 RGB.(Cb, Cb, Cb)
 
-# ╔═╡ 4e1fe80f-7889-4559-8840-f5cf4dbffe74
+# ╔═╡ 282b741d-6264-4468-b8c7-470816aeedcf
+M = [1:8 1:8 1:8 1:8 1:8 1:8 1:8 1:8]
 
+# ╔═╡ 4fa34b8a-0220-4b13-81e5-b0860d22b4e5
+function rlezag(M)
+	tmp =[1, 9, 2, 3, 10, 17, 25, 18, 11, 4, 5, 12, 19, 26, 33, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 57, 50, 43, 36, 29, 22, 15, 8, 16, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 24, 32, 39, 46, 53, 60, 61, 54, 47, 40, 48, 55, 62, 63, 56,64]
+	res = []
+	for i in 1:64
+		push!(res, M[tmp[i]])
+	end
+	return rle(res)
+end
+
+# ╔═╡ 9562de62-33c3-48dc-a538-402799806746
+rlezag(M)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -152,11 +166,13 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 FFTW = "~1.7.1"
 ImageMagick = "~1.3.0"
 Images = "~0.26.0"
+StatsBase = "~0.34.2"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -1176,6 +1192,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═98d551be-d54f-4b0b-bbda-2768ab8d744a
 # ╠═9b39eae5-eab4-4dce-96c6-d30a5965b113
 # ╠═90fe03d1-af10-4e90-9902-7d2d3029c90b
-# ╠═4e1fe80f-7889-4559-8840-f5cf4dbffe74
+# ╠═282b741d-6264-4468-b8c7-470816aeedcf
+# ╠═4fa34b8a-0220-4b13-81e5-b0860d22b4e5
+# ╠═9562de62-33c3-48dc-a538-402799806746
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
