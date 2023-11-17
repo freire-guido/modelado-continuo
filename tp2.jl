@@ -57,14 +57,8 @@ end
 
 # ╔═╡ b7419080-dc36-4da0-8c07-161cc048ce00
 function inv_primera_etapa(Y, Cb, Cr)
-	return RGB.(Y, repeat(Cb, inner=(2,2)), repeat(Cr, inner=(2,2)))
+	return RGB.(Y, repeat(Cb, inner=(2,2)), repeat(Cb, inner=(2,2)))
 end
-
-# ╔═╡ 5a96ade7-13df-421e-b8e9-38b8d0b7cad9
-Y, Cb, Cr = primera_etapa(imagen)
-
-# ╔═╡ 506d18e3-2cc9-463c-9596-3a862e049876
-inv_primera_etapa(Y, Cb, Cr)
 
 # ╔═╡ 61833f3d-2d8e-498b-87b8-60620781f5f6
 function transfbloques(M)
@@ -82,20 +76,6 @@ function inv_transfbloques(M)
 			idct!(view(M, (8*i-7):(8*i), (8*j-7):(8*j)))
 		end
 	end
-end
-
-# ╔═╡ 55152b42-087e-4b24-81e6-52c84f3043f3
-function transfimagen(Y, Cb, Cr)
-	transfbloques(Y)
-	transfbloques(Cb)
-	transfbloques(Cr)
-end
-
-# ╔═╡ 61e3b493-f7f5-45e2-8dcb-937b07c101c1
-function inv_transfimagen(Y, Cb, Cr)
-	inv_transfbloques(Y)
-	inv_transfbloques(Cb)
-	inv_transfbloques(Cr)
 end
 
 # ╔═╡ 98d551be-d54f-4b0b-bbda-2768ab8d744a
@@ -124,9 +104,6 @@ begin
 	end
 end
 
-# ╔═╡ 282b741d-6264-4468-b8c7-470816aeedcf
-M = [1:8 1:8 1:8 1:8 1:8 1:8 1:8 1:8]
-
 # ╔═╡ 4fa34b8a-0220-4b13-81e5-b0860d22b4e5
 function rlezag(M)
 	tmp =[1, 9, 2, 3, 10, 17, 25, 18, 11, 4, 5, 12, 19, 26, 33, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 57, 50, 43, 36, 29, 22, 15, 8, 16, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 24, 32, 39, 46, 53, 60, 61, 54, 47, 40, 48, 55, 62, 63, 56,64]
@@ -141,18 +118,12 @@ end
 function inv_rlezag(reps, vals)
 	aux = inverse_rle(reps, vals)
 	tmp =[1, 9, 2, 3, 10, 17, 25, 18, 11, 4, 5, 12, 19, 26, 33, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 57, 50, 43, 36, 29, 22, 15, 8, 16, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 24, 32, 39, 46, 53, 60, 61, 54, 47, 40, 48, 55, 62, 63, 56,64]
-	M = [1:8 1:8 1:8 1:8 1:8 1:8 1:8 1:8]
+	M = zeros(8, 8)
 	for i in 1:64
 		 M[tmp[i]] = aux[i]
 	end
 	return M
 end
-
-# ╔═╡ 9562de62-33c3-48dc-a538-402799806746
-inv_rlezag(rlezag(M)...)
-
-# ╔═╡ 3bf5e5c1-991e-4df0-9406-366be47a3fa0
-
 
 # ╔═╡ 6918608f-5527-4d1f-ad34-3d0ff16f79b2
 function rlezag_imagen(M)
@@ -176,11 +147,41 @@ function inv_rlezag_imagen(bloques)
 	return M
 end
 
-# ╔═╡ b1f6b9b7-de09-4515-8304-730dbcabbcaf
-inv_rlezag_imagen(rlezag_imagen(M))
+# ╔═╡ 701ed98c-1933-4be9-821e-20caa5666a4a
+function segunda_etapa(Y, Cb, Cr)
+	transfbloques(Y), transfbloques(Cb), transfbloques(Cr)
+	quant(Y), quant(Cb), quant(Cr)
+	return rlezag_imagen(Y), rlezag_imagen(Cb), rlezag_imagen(Cr)
+end
+
+# ╔═╡ a1e41c26-cabb-44f9-982c-bc6f93f0d9cb
+function inv_segunda_etapa(rleY, rleCb, rleCr)
+	Y = inv_rlezag_imagen(rleY)
+	Cb = inv_rlezag_imagen(rleCb)
+	Cr = inv_rlezag_imagen(rleCr)
+	inv_quant(Y), inv_quant(Cb), inv_quant(Cr)
+	inv_transfbloques(Y), inv_transfbloques(Cb), inv_transfbloques(Cr)
+	return Y, Cb, Cr
+end
 
 # ╔═╡ 887689dc-405a-47f9-a11e-2c687980b85a
+function grg(img)
+	return segunda_etapa(primera_etapa(img)...)
+end
 
+# ╔═╡ 199fd5e3-3043-4eea-9853-75878f70ee8d
+function inv_grg(rleY, rleCb, rleCr)
+	return inv_primera_etapa(inv_segunda_etapa(rleY, rleCb, rleCr)...)
+end
+
+# ╔═╡ 0e9c852c-715e-4cc8-8c42-1dcd6d0d8dee
+A = grg(imagen)
+
+# ╔═╡ 6bb5870b-aa11-4b8f-8c9b-0406cd950d94
+A
+
+# ╔═╡ 72eb82ff-3093-4fb9-9eb5-4de5fa98b902
+inv_grg(A...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1199,21 +1200,19 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═3d7e658d-e032-452e-b9b7-219bd1ef6625
 # ╠═76a71f61-af2c-42a0-99e6-0ffdd968c94d
 # ╠═b7419080-dc36-4da0-8c07-161cc048ce00
-# ╠═5a96ade7-13df-421e-b8e9-38b8d0b7cad9
-# ╠═506d18e3-2cc9-463c-9596-3a862e049876
 # ╠═61833f3d-2d8e-498b-87b8-60620781f5f6
 # ╠═d562f1c9-4612-41b6-9c92-06d9efd139a1
-# ╠═55152b42-087e-4b24-81e6-52c84f3043f3
-# ╠═61e3b493-f7f5-45e2-8dcb-937b07c101c1
 # ╠═98d551be-d54f-4b0b-bbda-2768ab8d744a
-# ╠═282b741d-6264-4468-b8c7-470816aeedcf
 # ╠═4fa34b8a-0220-4b13-81e5-b0860d22b4e5
 # ╠═402aca8d-e8f1-4e0e-aefc-09ffea9ed577
-# ╠═9562de62-33c3-48dc-a538-402799806746
-# ╠═3bf5e5c1-991e-4df0-9406-366be47a3fa0
 # ╠═6918608f-5527-4d1f-ad34-3d0ff16f79b2
 # ╠═c118c923-a8d2-4331-8610-370f9051c6e7
-# ╠═b1f6b9b7-de09-4515-8304-730dbcabbcaf
+# ╠═701ed98c-1933-4be9-821e-20caa5666a4a
+# ╠═a1e41c26-cabb-44f9-982c-bc6f93f0d9cb
 # ╠═887689dc-405a-47f9-a11e-2c687980b85a
+# ╠═199fd5e3-3043-4eea-9853-75878f70ee8d
+# ╠═0e9c852c-715e-4cc8-8c42-1dcd6d0d8dee
+# ╠═6bb5870b-aa11-4b8f-8c9b-0406cd950d94
+# ╠═72eb82ff-3093-4fb9-9eb5-4de5fa98b902
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
