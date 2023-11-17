@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.32
+# v0.19.9
 
 using Markdown
 using InteractiveUtils
@@ -56,15 +56,15 @@ function primera_etapa(image)
 end
 
 # ╔═╡ b7419080-dc36-4da0-8c07-161cc048ce00
-function inversa(Y, Cb, Cr)
-	return Y, repeat(Cb, inner=(2,2)), repeat(Cr, inner=(2,2))
+function inv_primera_etapa(Y, Cb, Cr)
+	return RGB.(Y, repeat(Cb, inner=(2,2)), repeat(Cr, inner=(2,2)))
 end
 
 # ╔═╡ 5a96ade7-13df-421e-b8e9-38b8d0b7cad9
 Y, Cb, Cr = primera_etapa(imagen)
 
 # ╔═╡ 506d18e3-2cc9-463c-9596-3a862e049876
-RGB.(inversa(Y, Cb, Cr)...)
+inv_primera_etapa(Y, Cb, Cr)
 
 # ╔═╡ 61833f3d-2d8e-498b-87b8-60620781f5f6
 function transfbloques(M)
@@ -76,7 +76,7 @@ function transfbloques(M)
 end
 
 # ╔═╡ d562f1c9-4612-41b6-9c92-06d9efd139a1
-function invbloques(M)
+function inv_transfbloques(M)
 	for i in 1:Int(size(M)[1]/8)
 		for j in 1:Int(size(M)[2]/8)
 			idct!(view(M, (8*i-7):(8*i), (8*j-7):(8*j)))
@@ -91,30 +91,16 @@ function transfimagen(Y, Cb, Cr)
 	transfbloques(Cr)
 end
 
-# ╔═╡ 7d7c4d8b-af4d-47b1-87d4-f15b09f9af58
-CB = copy(Cb)
-
-# ╔═╡ b033f2f9-1cc6-4795-8a0e-a3c26a003571
-RGB.(Cb, Cb, Cb)
-
-# ╔═╡ ffae4c28-9cad-4e0e-a1f6-bcd69d7a6966
-transfbloques(Cb)
-
-# ╔═╡ e4ea42b8-d9dd-42e7-a8e3-135e69540270
-RGB.(Cb, Cb, Cb)
-
-# ╔═╡ 71729abc-ceb7-4955-86a5-02e59a33128a
-CB == Cb
-
-# ╔═╡ ed5299ff-4792-4ba9-b67a-c95757722013
-invbloques(Cb)
-
-# ╔═╡ 5eb14954-8347-4624-ba5e-de05603484ed
-RGB.(Cb, Cb, Cb)
+# ╔═╡ 61e3b493-f7f5-45e2-8dcb-937b07c101c1
+function inv_transfimagen(Y, Cb, Cr)
+	inv_transfbloques(Y)
+	inv_transfbloques(Cb)
+	inv_transfbloques(Cr)
+end
 
 # ╔═╡ 98d551be-d54f-4b0b-bbda-2768ab8d744a
 begin
-	quant=[16 11 10 16 24 40 51 61;
+	Mq=[16 11 10 16 24 40 51 61;
 		12 12 14 19 26 58 60 55;
 		14 13 16 24 40 57 69 56;
 		14 17 22 29 51 87 80 62;
@@ -122,27 +108,21 @@ begin
 		24 35 55 64 81 104 113 92;
 		49 64 78 87 103 121 120 101;
 		72 92 95 98 112 100 103 99] # No es simetrica
-	function divquant(M)
+	function quant(M)
 		for i in 1:Int(size(M)[1]/8)
 			for j in 1:Int(size(M)[2]/8)
-				M[(8*i-7):(8*i), (8*j-7):(8*j)] ./= quant
+				M[(8*i-7):(8*i), (8*j-7):(8*j)] ./= Mq
 			end
 		end
 	end
-	function mulquant(M)
+	function inv_quant(M)
 		for i in 1:Int(size(M)[1]/8)
 			for j in 1:Int(size(M)[2]/8)
-				M[(8*i-7):(8*i), (8*j-7):(8*j)] .*= quant
+				M[(8*i-7):(8*i), (8*j-7):(8*j)] .*= Mq
 			end
 		end
 	end
 end
-
-# ╔═╡ 9b39eae5-eab4-4dce-96c6-d30a5965b113
-mulquant(Cb)
-
-# ╔═╡ 90fe03d1-af10-4e90-9902-7d2d3029c90b
-RGB.(Cb, Cb, Cb)
 
 # ╔═╡ 282b741d-6264-4468-b8c7-470816aeedcf
 M = [1:8 1:8 1:8 1:8 1:8 1:8 1:8 1:8]
@@ -157,8 +137,50 @@ function rlezag(M)
 	return rle(res)
 end
 
+# ╔═╡ 402aca8d-e8f1-4e0e-aefc-09ffea9ed577
+function inv_rlezag(reps, vals)
+	aux = inverse_rle(reps, vals)
+	tmp =[1, 9, 2, 3, 10, 17, 25, 18, 11, 4, 5, 12, 19, 26, 33, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 57, 50, 43, 36, 29, 22, 15, 8, 16, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 24, 32, 39, 46, 53, 60, 61, 54, 47, 40, 48, 55, 62, 63, 56,64]
+	M = [1:8 1:8 1:8 1:8 1:8 1:8 1:8 1:8]
+	for i in 1:64
+		 M[tmp[i]] = aux[i]
+	end
+	return M
+end
+
 # ╔═╡ 9562de62-33c3-48dc-a538-402799806746
-rlezag(M)
+inv_rlezag(rlezag(M)...)
+
+# ╔═╡ 3bf5e5c1-991e-4df0-9406-366be47a3fa0
+
+
+# ╔═╡ 6918608f-5527-4d1f-ad34-3d0ff16f79b2
+function rlezag_imagen(M)
+	bloques = Matrix{Tuple{Vector{Any},Vector{Int64}}}(undef,Int(size(M)[1]/8),Int(size(M)[2]/8))
+	for i in 1:Int(size(M)[1]/8)
+		for j in 1:Int(size(M)[2]/8)
+			bloques[i,j] = rlezag(M[(8*i-7):(8*i), (8*j-7):(8*j)])
+		end
+	end
+	return bloques
+end
+
+# ╔═╡ c118c923-a8d2-4331-8610-370f9051c6e7
+function inv_rlezag_imagen(bloques)
+	M = zeros(Int(size(bloques)[1]*8), Int(size(bloques)[2]*8))
+	for i in 1:Int(size(M)[1]/8)
+		for j in 1:Int(size(M)[2]/8)
+			M[(8*i-7):(8*i), (8*j-7):(8*j)] = inv_rlezag(bloques[i,j]...)
+		end
+	end
+	return M
+end
+
+# ╔═╡ b1f6b9b7-de09-4515-8304-730dbcabbcaf
+inv_rlezag_imagen(rlezag_imagen(M))
+
+# ╔═╡ 887689dc-405a-47f9-a11e-2c687980b85a
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1182,18 +1204,16 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═61833f3d-2d8e-498b-87b8-60620781f5f6
 # ╠═d562f1c9-4612-41b6-9c92-06d9efd139a1
 # ╠═55152b42-087e-4b24-81e6-52c84f3043f3
-# ╠═7d7c4d8b-af4d-47b1-87d4-f15b09f9af58
-# ╠═b033f2f9-1cc6-4795-8a0e-a3c26a003571
-# ╠═ffae4c28-9cad-4e0e-a1f6-bcd69d7a6966
-# ╠═e4ea42b8-d9dd-42e7-a8e3-135e69540270
-# ╠═71729abc-ceb7-4955-86a5-02e59a33128a
-# ╠═ed5299ff-4792-4ba9-b67a-c95757722013
-# ╠═5eb14954-8347-4624-ba5e-de05603484ed
+# ╠═61e3b493-f7f5-45e2-8dcb-937b07c101c1
 # ╠═98d551be-d54f-4b0b-bbda-2768ab8d744a
-# ╠═9b39eae5-eab4-4dce-96c6-d30a5965b113
-# ╠═90fe03d1-af10-4e90-9902-7d2d3029c90b
 # ╠═282b741d-6264-4468-b8c7-470816aeedcf
 # ╠═4fa34b8a-0220-4b13-81e5-b0860d22b4e5
+# ╠═402aca8d-e8f1-4e0e-aefc-09ffea9ed577
 # ╠═9562de62-33c3-48dc-a538-402799806746
+# ╠═3bf5e5c1-991e-4df0-9406-366be47a3fa0
+# ╠═6918608f-5527-4d1f-ad34-3d0ff16f79b2
+# ╠═c118c923-a8d2-4331-8610-370f9051c6e7
+# ╠═b1f6b9b7-de09-4515-8304-730dbcabbcaf
+# ╠═887689dc-405a-47f9-a11e-2c687980b85a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
