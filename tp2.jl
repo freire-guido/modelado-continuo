@@ -178,14 +178,16 @@ function inv_grg(rleY, rleCb, rleCr)
 	return inv_primera_etapa(inv_segunda_etapa(rleY, rleCb, rleCr)...)
 end
 
-# ╔═╡ 0e9c852c-715e-4cc8-8c42-1dcd6d0d8dee
-A = grg(imagen)
+# ╔═╡ 3b9b636f-6b76-46e6-8fc8-05dd47a4533c
+function toGrg(path)
+	imagen = load(path)
+	imgrg = grg(imagen)
+	io = open(split(path, ".")[1]*".grg", "w")
+	write(io, imgrg)
+end
 
-# ╔═╡ 6bb5870b-aa11-4b8f-8c9b-0406cd950d94
-A
-
-# ╔═╡ 72eb82ff-3093-4fb9-9eb5-4de5fa98b902
-cosa = inv_grg(A...)
+# ╔═╡ be73090e-65b5-4e42-b7fe-8e03f21f9bc6
+grg(imagen)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1221,8 +1223,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═a1e41c26-cabb-44f9-982c-bc6f93f0d9cb
 # ╠═887689dc-405a-47f9-a11e-2c687980b85a
 # ╠═199fd5e3-3043-4eea-9853-75878f70ee8d
-# ╠═0e9c852c-715e-4cc8-8c42-1dcd6d0d8dee
-# ╠═6bb5870b-aa11-4b8f-8c9b-0406cd950d94
-# ╠═72eb82ff-3093-4fb9-9eb5-4de5fa98b902
+# ╠═3b9b636f-6b76-46e6-8fc8-05dd47a4533c
+# ╠═be73090e-65b5-4e42-b7fe-8e03f21f9bc6
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
