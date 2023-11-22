@@ -95,7 +95,7 @@ begin
 	function quant(M)
 		for i in 1:Int(size(M)[1]/8)
 			for j in 1:Int(size(M)[2]/8)
-				M[(8*i-7):(8*i), (8*j-7):(8*j)] ./= Mq
+				M[(8*i-7):(8*i), (8*j-7):(8*j)] = trunc.(Int8, M[(8*i-7):(8*i), (8*j-7):(8*j)] ./ Mq)
 			end
 		end
 	end
@@ -183,11 +183,96 @@ function toGrg(path)
 	imagen = load(path)
 	imgrg = grg(imagen)
 	io = open(split(path, ".")[1]*".grg", "w")
-	write(io, imgrg)
+	for k in 1:3
+		write(io, Int16(size(imgrg[k])[1]))
+		write(io, Int16(size(imgrg[k])[2]))
+		for i in 1:size(imgrg[k])[1]
+			for j in 1:size(imgrg[k])[2]
+				write(io, Int8(size(imgrg[k][i,j][1])[1]))
+				for l in 1:size(imgrg[k][i,j][1])[1]
+					write(io, Int8(imgrg[k][i,j][1][l]))
+					write(io, Int8(imgrg[k][i,j][2][l]))
+				end
+			end
+		end
+	end
 end
 
 # ╔═╡ be73090e-65b5-4e42-b7fe-8e03f21f9bc6
-grg(imagen)
+toGrg("Meisje_met_de_parel.jpg")
+
+# ╔═╡ 45398b04-d5bc-48dc-84ae-6354d80c6a96
+cosa = grg(imagen)
+
+# ╔═╡ 7b126137-d93f-4b36-a210-9f9342367cfc
+typeof(cosa)
+
+# ╔═╡ 143934a4-e974-4232-9371-b6bc3ae1ed63
+cosa[1][6]
+
+# ╔═╡ 81d91426-22c1-42b3-bfc2-58ff80723caa
+function fromGrg(path)
+	io = open(path)
+
+
+	n_G = read(io, Int16)
+	m_G = read(io, Int16)
+
+	G = Matrix{Tuple{Vector{Any},Vector{Int64}}}(undef,n_G,m_G)
+
+	for i in 1:n_G
+		for j in 1:m_G
+			a_G = zeros(read(io, Int8))
+			b_G = zeros(size(a_G))
+			for l in 1:size(a_G)[1]
+				a_G[l] = read(io, Int8)
+				b_G[l] = read(io, Int8)
+			end
+			G[i,j] = (a_G, b_G)
+		end
+	end
+	
+	n_r = read(io, Int16)
+	m_r = read(io, Int16)
+
+	r = Matrix{Tuple{Vector{Any},Vector{Int64}}}(undef,n_r,m_r)
+	
+	for i in 1:n_r
+		for j in 1:m_r
+			a_r = zeros(read(io, Int8))
+			b_r = zeros(size(a_r))
+			for l in 1:size(a_r)[1]
+				a_r[l] = read(io, Int8)
+				b_r[l] = read(io, Int8)
+			end
+			r[i,j] = (a_r, b_r)
+		end
+	end
+
+	
+	n_g = read(io, Int16)
+	m_g = read(io, Int16)
+
+	g = Matrix{Tuple{Vector{Any},Vector{Int64}}}(undef,n_g,m_g)
+	
+	for i in 1:n_g
+		for j in 1:m_g
+			a_g = zeros(read(io, Int8))
+			b_g = zeros(size(a_g))
+			for l in 1:size(a_g)[1]
+				a_g[l] = read(io, Int8)
+				b_g[l] = read(io, Int8)
+			end
+			g[i,j] = (a_g, b_g)
+		end
+	end
+
+	return inv_grg( G,r,g )
+	
+end
+
+# ╔═╡ 1082d196-c45d-42a3-a655-d78ee463a98a
+fromGrg("Meisje_met_de_parel.grg")
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1225,5 +1310,10 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═199fd5e3-3043-4eea-9853-75878f70ee8d
 # ╠═3b9b636f-6b76-46e6-8fc8-05dd47a4533c
 # ╠═be73090e-65b5-4e42-b7fe-8e03f21f9bc6
+# ╠═45398b04-d5bc-48dc-84ae-6354d80c6a96
+# ╠═7b126137-d93f-4b36-a210-9f9342367cfc
+# ╠═143934a4-e974-4232-9371-b6bc3ae1ed63
+# ╠═81d91426-22c1-42b3-bfc2-58ff80723caa
+# ╠═1082d196-c45d-42a3-a655-d78ee463a98a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
