@@ -223,5 +223,7 @@ function fromGrg(path)
             q[i, j] = read(io, UInt8)
         end
     end
-    return inv_grg(G, r, g, q)
+    inversa = inv_grg(G, r, g, q)
+    save(split(path, ".")[1]*"2.jpg", inversa)
+    return inversa
 end
