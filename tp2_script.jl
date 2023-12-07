@@ -64,6 +64,7 @@ function inv_transfbloques(M)
         end
     end
 end
+
 Mq = [16 11 10 16 24 40 51 61;
 12 12 14 19 26 58 60 55;
 14 13 16 24 40 57 69 56;
@@ -72,10 +73,13 @@ Mq = [16 11 10 16 24 40 51 61;
 24 35 55 64 81 104 113 92;
 49 64 78 87 103 121 120 101;
 72 92 95 98 112 100 103 99] # No es simetrica
+
+# ACA CAMBIAMOS LA MATRIZ DE CUANTIZACION
+
 function quant(M, q = Mq)
     for i in 1:Int(size(M)[1]/8)
         for j in 1:Int(size(M)[2]/8)
-            M[(8*i-7):(8*i), (8*j-7):(8*j)] = trunc.(Int8, M[(8*i-7):(8*i), (8*j-7):(8*j)] ./ q)
+            M[(8*i-7):(8*i), (8*j-7):(8*j)] = trunc.(Int8, max.(-126, min.(126, M[(8*i-7):(8*i), (8*j-7):(8*j)] ./ q)))
         end
     end
 end
