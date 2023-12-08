@@ -58,10 +58,7 @@ plot_calor(u, Xs, Ts)
 
 # ╔═╡ 0dfcc5b9-f45a-4f42-9b77-b04d78e0d404
 function matriz_calor(n, r = 1/2)
-	A = r*Tridiagonal(-ones(n-1), 2ones(n), -ones(n-1)) - I
-	A[1, :] = zeros(n)
-	A[end, :] = zeros(n)
-	return A
+	return r*Tridiagonal(-ones(n-1), 2ones(n), -ones(n-1)) - I
 end
 
 # ╔═╡ 892f939b-ba17-49b7-a57d-6cc89da1938c
@@ -78,6 +75,8 @@ function calor_explicito(g, Tf, dt, α, r=1/2)
 	A = matriz_calor(n, r)
 	for i in 2:length(Ts)
 		u[:, i] = A * u[:, i-1]
+		u[1, i] = 0
+		u[end, i] = 0
 	end
 	return u, Xs, Ts
 end
@@ -101,6 +100,8 @@ function calor_implicito(g, Tf, dt, α, r=1/2)
 	A = -matriz_calor(n, r) - 2I
 	for i in 2:length(Ts)
 		u[:, i] = A \ u[:, i-1]
+		u[1, i] = 0
+		u[end, i] = 0
 	end
 	return u, Xs, Ts
 end
@@ -258,18 +259,20 @@ md"""
 """
 
 # ╔═╡ 53c577f2-41cb-47be-a92e-262d10c68f11
-function gtransp((x, y)) return 20*(1-x)*x*(1-y)*y end
+function gtransp((x, y)) return 10*(1-x)*x*(1-y)*y end
 
 # ╔═╡ c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 function matriz_transporte2d(n, m, α, β, dt, h)
-	A = diagm(
-		0 => (-4*α*dt/h^2-2*β*dt/h)ones(n*m), 
-		1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)], 
-		m+1 => ones(n*(m-1)-1),
-		-1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)],
-		-m-1 => ones(n*(m-1)-1)
-	)
-	return Symmetric(A - I)
+	# A = diagm(
+	# 	0 => (-4*α*dt/h^2-2*β*dt/h)ones(n*m), 
+	# 	1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)], 
+	# 	m+1 => ones(n*(m-1)-1),
+	# 	-1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)],
+	# 	-m-1 => ones(n*(m-1)-1)
+	# )
+	A = matriz_calor2d(n, m, α*dt/(h^2)) # r1 * A - I
+	B = matriz_calor(n*m, β*dt/h) # r2 * B - I
+	return A + B + I
 end
 
 # ╔═╡ 26fa1e20-b0dd-4711-89ac-43cb06dfe92a
@@ -298,10 +301,10 @@ function calor_transporte2d(g, Tf, dt, α, β, h)
 end
 
 # ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
-plot_calor2d(calor_transporte2d(gtransp, 0.33, 0.005, 0.5, 2, 0.04)...)
+plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 0, 0.04)...)
 
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
-plot_calor2d(calor_transporte2d(gtransp, 0.33, 0.005, 0.5, 0, 0.04)...)
+plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 0.1, 5, 0.01)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
