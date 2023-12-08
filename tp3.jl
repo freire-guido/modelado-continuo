@@ -58,8 +58,14 @@ plot_calor(u, Xs, Ts)
 
 # ╔═╡ 0dfcc5b9-f45a-4f42-9b77-b04d78e0d404
 function matriz_calor(n, r = 1/2)
-	return r*Tridiagonal(-ones(n-1), 2ones(n), -ones(n-1)) - I
+	A = r*Tridiagonal(-ones(n-1), 2ones(n), -ones(n-1)) - I
+	A[1, :] = zeros(n)
+	A[end, :] = zeros(n)
+	return A
 end
+
+# ╔═╡ 892f939b-ba17-49b7-a57d-6cc89da1938c
+matriz_calor(3)
 
 # ╔═╡ 73f08f87-c243-474c-bb45-771e9bbde202
 function calor_explicito(g, Tf, dt, α, r=1/2)
@@ -119,6 +125,9 @@ function matriz_calor2d(n, m, r=1/2)
 	return Symmetric(r*A - I)
 end
 
+# ╔═╡ 3379d377-c2bd-4bcc-9fce-fa38f45cbabc
+matriz_calor2d(3, 3)
+
 # ╔═╡ b002851b-da74-4ec1-858b-b5435105a21a
 md"""
 Resolvemos el caso bidimensional con un método implícito sin guardar la descomposición (es decir, la recalculamos en cada paso).
@@ -134,32 +143,48 @@ function calor_implicito2d_naive(g,Tf,dt,α,r=1/2)
 	m = length(Ys)
 	u = zeros(n * m, length(Ts))
 	u[:,1] = vcat(g.(collect(Base.product(Xs, Ys)))...)
-	A = matriz_calor2d(n,m,r)
+	A = -matriz_calor2d(n,m,r)
 	for t in 2:(length(Ts))
-		u[:,t] = -A \ u[:,t-1]
+		u[:,t] = A \ u[:,t-1]
+		u[1:n, :] .= 0
+		u[(end - n):(n*m), :] .= 0
+		u[collect(1:(n*m)) .% n .== 0, :] .= 0
+		u[collect(1:(n*m)) .% n .== 1, :] .= 0
 	end
 	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
 end
 
-# ╔═╡ 85823f56-2c4a-4884-ace8-75b18f2fa7b3
-function plot_calor2d(M, Xs, Ys, Ts)
-	@gif for i in 1:Int(round(length(Ts)*0.1))
-		heatmap(M[:, :, i], clim = (0, 2))
-	end
-end
-
-# ╔═╡ 361caf6d-037b-4de0-b52d-5dbbe257d938
-function g2d((x,y))
-	return (x+y)^2
-end
-
-# ╔═╡ 754be7c7-2622-4631-a066-31161a8d11be
-plot_calor2d(calor_implicito2d_naive(g2d, 1, 0.001, 1)...)
-
-# ╔═╡ 7754864a-cafa-47b3-ac94-4ac2f3ad50c0
+# ╔═╡ 1409a4d0-2072-4ca6-8bca-2b659069e646
 md"""
-Ahora, nos guardamos la descomposición LU de "A"
+Además, nos interesa ver cuanto mejora clasificar la matriz como `Symmetric`
 """
+
+# ╔═╡ 9d57cac5-ef36-4bc8-b483-2aabc5edc5c2
+function calor_implicito2d_nosymmetric(g,Tf,dt,α,r=1/2)
+	h = sqrt(α * dt / r) 
+	Ts = 0:dt:Tf
+	Xs = 0:h:1
+	Ys = 0:h:1
+	n = length(Xs)
+	m = length(Ys)
+	u = zeros(n * m, length(Ts))
+	u[:,1] = vcat(g.(collect(Base.product(Xs, Ys)))...)
+	descA = lu(-r*diagm(
+		0 => -4*ones(n*m), 
+		1 => repeat([ones(n-1)...,0], m)[1:(end-1)], 
+		m+1 => ones(n*(m-1)-1),
+		-1 => repeat([ones(n-1)...,0], m)[1:(end-1)],
+		-m-1 => ones(n*(m-1)-1)
+	) + I)
+	for t in 2:(length(Ts))
+		u[:,t] = descA \ u[:,t-1]
+		u[1:n, :] .= 0
+		u[(end - n):(n*m), :] .= 0
+		u[collect(1:(n*m)) .% n .== 0, :] .= 0
+		u[collect(1:(n*m)) .% n .== 1, :] .= 0
+	end
+	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
+end
 
 # ╔═╡ 17fa5a9a-601e-47a6-8b8e-2f76841a3672
 function calor_implicito2d(g,Tf,dt,α,r=1/2)
@@ -174,12 +199,109 @@ function calor_implicito2d(g,Tf,dt,α,r=1/2)
 	descA = lu(-matriz_calor2d(n,m,r))
 	for t in 2:(length(Ts))
 		u[:,t] = descA \ u[:,t-1]
+		u[1:m, t] .= 0
+		u[(end - m):(n*m), t] .= 0
+		u[collect(1:(n*m)) .% n .== 0, t] .= 0
+		u[collect(1:(n*m)) .% n .== 1, t] .= 0
 	end
 	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
 end
 
+# ╔═╡ af89ebbf-6b8b-4cbc-9175-cf9be0c1148a
+md"""
+## Benchmarks
+"""
+
+# ╔═╡ e83cf387-ef65-43a2-8acf-59124861d6ac
+md"""
+El método naive, recalculando la inversa en cada paso no solo tarda aprox. 60 veces más que el que guarda la descomposición, sino que también hace muchas más allocs. y ocupa un orden de magnitud más que la versión con descomposición.
+Además, ejecutamos el método sin `Symmetric`, pero la diferencia es muy pequeña respecto a la versión con descomposición.
+"""
+
+# ╔═╡ 5498089b-9661-476a-a894-f09a4f246be7
+md"""
+## Heatmap
+"""
+
+# ╔═╡ 85823f56-2c4a-4884-ace8-75b18f2fa7b3
+function plot_calor2d(M, Xs, Ys, Ts)
+	@gif for i in 1:Int(round(length(Ts)*0.1))
+		heatmap(M[:, :, i], clim = (0, 2))
+	end
+end
+
+# ╔═╡ 361caf6d-037b-4de0-b52d-5dbbe257d938
+function g2d((x,y))
+	return (x+y)^2
+end
+
+# ╔═╡ 38ba5b08-83c5-4adf-a029-e1b79d09e5fb
+@benchmark sol_implicito2d_naive = calor_implicito2d_naive(g2d, 1, 0.001, 1)
+
+# ╔═╡ 15761817-9b1a-4eaa-833a-7903f0c58211
+@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.001, 1)
+
+# ╔═╡ 2823370f-3f85-4b7e-85c6-518a9c1bf943
+@benchmark sol_implicito2d = calor_implicito2d(g2d, 1, 0.001, 1)
+
+# ╔═╡ 7754864a-cafa-47b3-ac94-4ac2f3ad50c0
+md"""
+Ahora, nos guardamos la descomposición LU de "A"
+"""
+
 # ╔═╡ 52bede85-9fca-4279-8444-8722e4b6c40f
 plot_calor2d(calor_implicito2d(g2d, 1, 0.001, 1)...)
+
+# ╔═╡ c1599ec1-1e63-41ae-88d8-578ae4f2423e
+md"""
+# Difusión con transporte
+"""
+
+# ╔═╡ 53c577f2-41cb-47be-a92e-262d10c68f11
+function gtransp((x, y)) return 20*(1-x)*x*(1-y)*y end
+
+# ╔═╡ c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
+function matriz_transporte2d(n, m, α, β, dt, h)
+	A = diagm(
+		0 => (-4*α*dt/h^2-2*β*dt/h)ones(n*m), 
+		1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)], 
+		m+1 => ones(n*(m-1)-1),
+		-1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)],
+		-m-1 => ones(n*(m-1)-1)
+	)
+	return Symmetric(A - I)
+end
+
+# ╔═╡ 26fa1e20-b0dd-4711-89ac-43cb06dfe92a
+matriz_transporte2d(3, 3, 1, 2, 0.001, 1)
+
+# ╔═╡ 0dd2b5b5-9dde-44f0-9595-75720f6b0d6b
+matriz_transporte2d(3, 3, 1, 10, 0.001, 1)
+
+# ╔═╡ f44e52e3-455f-4e2b-b6f2-8ed84a65f705
+function calor_transporte2d(g, Tf, dt, α, β, h)
+	Ts = 0:dt:Tf
+	Xs = 0:h:1
+	Ys = 0:h:1
+	n = length(Xs)
+	m = length(Ys)
+	u = zeros(n * m, length(Ts))
+	u[:,1] = vcat(g.(collect(Base.product(Xs, Ys)))...)
+	descA = lu(-matriz_transporte2d(n,m,α,β,dt,h))
+	for t in 2:(length(Ts))
+		u[:,t] = descA \ u[:,t-1]
+		u[collect(1:end) .% n .== 0, t] = u[collect(1:end) .% n .== 1, t]
+		u[1:m, t] = u[(m+1):2*m, t]
+		u[(end-m+1):end, t] = u[(end-2*m+1):(end-m), t]
+	end
+	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
+end
+
+# ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
+plot_calor2d(calor_transporte2d(gtransp, 0.33, 0.005, 0.5, 2, 0.04)...)
+
+# ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
+plot_calor2d(calor_transporte2d(gtransp, 0.33, 0.005, 0.5, 0, 0.04)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1299,6 +1421,7 @@ version = "1.4.1+1"
 # ╠═0b43c5ba-5fdc-47be-855b-5f7cf3444ca9
 # ╠═d6576b3f-e379-4e5d-88fb-94f4f04cce03
 # ╠═0dfcc5b9-f45a-4f42-9b77-b04d78e0d404
+# ╠═892f939b-ba17-49b7-a57d-6cc89da1938c
 # ╠═73f08f87-c243-474c-bb45-771e9bbde202
 # ╠═7ac04f87-573e-4ad4-aee9-0098191378fd
 # ╟─46be37c9-dc60-4d82-8b43-26d259d3e1eb
@@ -1307,13 +1430,29 @@ version = "1.4.1+1"
 # ╟─e85ffbcf-76f8-4a28-a5f7-f914cec16536
 # ╠═313d2f4c-179e-4ef5-a5ba-e6c6e780be8b
 # ╠═df8ecd7c-dc1e-43cc-9b90-4853b0a84fe5
+# ╠═3379d377-c2bd-4bcc-9fce-fa38f45cbabc
 # ╟─b002851b-da74-4ec1-858b-b5435105a21a
 # ╠═9c712a54-eb2d-4a51-9df6-7b64c3723490
+# ╟─1409a4d0-2072-4ca6-8bca-2b659069e646
+# ╠═9d57cac5-ef36-4bc8-b483-2aabc5edc5c2
+# ╠═17fa5a9a-601e-47a6-8b8e-2f76841a3672
+# ╟─af89ebbf-6b8b-4cbc-9175-cf9be0c1148a
+# ╠═38ba5b08-83c5-4adf-a029-e1b79d09e5fb
+# ╠═15761817-9b1a-4eaa-833a-7903f0c58211
+# ╠═2823370f-3f85-4b7e-85c6-518a9c1bf943
+# ╟─e83cf387-ef65-43a2-8acf-59124861d6ac
+# ╟─5498089b-9661-476a-a894-f09a4f246be7
 # ╠═85823f56-2c4a-4884-ace8-75b18f2fa7b3
 # ╠═361caf6d-037b-4de0-b52d-5dbbe257d938
-# ╠═754be7c7-2622-4631-a066-31161a8d11be
 # ╟─7754864a-cafa-47b3-ac94-4ac2f3ad50c0
-# ╠═17fa5a9a-601e-47a6-8b8e-2f76841a3672
 # ╠═52bede85-9fca-4279-8444-8722e4b6c40f
+# ╟─c1599ec1-1e63-41ae-88d8-578ae4f2423e
+# ╠═53c577f2-41cb-47be-a92e-262d10c68f11
+# ╠═c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
+# ╠═26fa1e20-b0dd-4711-89ac-43cb06dfe92a
+# ╠═0dd2b5b5-9dde-44f0-9595-75720f6b0d6b
+# ╠═f44e52e3-455f-4e2b-b6f2-8ed84a65f705
+# ╠═fbed7048-2774-481b-8d84-758c4badd720
+# ╠═c5cb1e80-f749-43d8-a246-74730e19a793
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
