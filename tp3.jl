@@ -16,6 +16,12 @@ md"""
 ## Explicito
 """
 
+# ╔═╡ da282e05-ceca-4194-a858-6ea810b0e737
+md"""
+Primero hacemos el algorítmo explícito, que usa la función delta en tiempo T para calcular u en T+1.
+Después lo implementamos matricialmente en vez de iterativamente y mostramos en un gráfico cómo el calor se propaga en 1d con condiciones Dirichlet.
+"""
+
 # ╔═╡ 19d12d09-da53-4a30-bf97-0fef4495ae9b
 function calor_explicito_iter(g, Tf, dt, α, r=1/2)
 	h = sqrt(α * dt / r) 
@@ -87,6 +93,12 @@ plot_calor(calor_explicito(g, 1, dt, α)...)
 # ╔═╡ 46be37c9-dc60-4d82-8b43-26d259d3e1eb
 md"""
 ## Implicito
+"""
+
+# ╔═╡ 96d0be3a-594e-4137-ae92-e7c7f840ea5b
+md"""
+Implementamos el método implícito para resolver la ecuación del calor. Como tenemos que evaluar la función delta en T+1, hace falta multiplicar por -1 y luego invertir la matriz.
+Hacemos más eficiente el código, haciendo descomposición LU para la matriz de forma que es mucho más sencillo calcular la inversa y no tenemos que hacerlo de nuevo en cada iteración.
 """
 
 # ╔═╡ dcd7e3dc-3340-4ca7-8a12-4ac605233759
@@ -224,6 +236,11 @@ md"""
 ## Heatmap
 """
 
+# ╔═╡ fd1b372b-800e-45a5-bf1d-0e0232b941d3
+md"""
+Ploteamos en 2 dimensiones la solución a la ecuación del calor con condición de contorno Dirichlet.
+"""
+
 # ╔═╡ 85823f56-2c4a-4884-ace8-75b18f2fa7b3
 function plot_calor2d(M, Xs, Ys, Ts)
 	@gif for i in 1:Int(round(length(Ts)*0.1))
@@ -256,6 +273,16 @@ plot_calor2d(calor_implicito2d(g2d, 1, 0.001, 1)...)
 # ╔═╡ c1599ec1-1e63-41ae-88d8-578ae4f2423e
 md"""
 # Difusión con transporte
+"""
+
+# ╔═╡ 554ac76d-669c-468c-971b-fbf0629305e4
+md"""
+Modificamos las matrices para cumplir la nueva pde con el término de transporte.
+
+Mostramos dos heatmaps que resuelven la pde con el parámetro de transporte en 0 o en 20 y parece funcionar bien en ese caso. Sin embargo, moviendo un poco los parámetros muy rápido vemos simulaciones que no tienen sentido y que parecieran ser víctimas de error númerico.
+
+Creemos que hay algún error en la implementación de la solución en el caso con transporte y nos gustaría tras una devolución poder arreglarlo.
+
 """
 
 # ╔═╡ 53c577f2-41cb-47be-a92e-262d10c68f11
@@ -304,7 +331,7 @@ end
 plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 0, 0.04)...)
 
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
-plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 0.1, 5, 0.01)...)
+plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 20, 0.04)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -313,20 +340,15 @@ BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-
-[compat]
-BenchmarkTools = "~1.4.0"
-Plots = "~1.39.0"
-PlutoUI = "~0.7.52"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.4"
+julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "00882a4ae90b205365b1e7340d1625e0bc4a0d72"
+project_hash = "01d24fcbe4fe74fdfee7d52e09ce8c5bc5369da4"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -346,9 +368,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.BenchmarkTools]]
 deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "f1f03a9fa24271160ed7e73051fba3c1a759b53f"
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.4.0"
+version = "1.3.2"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
@@ -674,12 +696,12 @@ version = "0.16.1"
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.4"
+version = "0.6.3"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.4.0+0"
+version = "7.84.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -688,7 +710,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.11.0+1"
+version = "1.10.2+0"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -766,9 +788,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
+git-tree-sha1 = "0d097476b6c381ab7906460ef1ef1638fbce1d91"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "1.0.3"
+version = "1.0.2"
 
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
@@ -981,9 +1003,9 @@ version = "1.2.2"
 
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
-git-tree-sha1 = "ffdaf70d81cf6ff22c2b6e733c900c3321cab864"
+git-tree-sha1 = "90bc7a7c96410424509e4263e277e43250c05691"
 uuid = "05181044-ff0b-4ac5-8273-598c1e38db00"
-version = "1.0.1"
+version = "1.0.0"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
@@ -1077,9 +1099,9 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.13"
 
 [[deps.Tricks]]
-git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+git-tree-sha1 = "aadb748be58b492045b4f56166b5188aa63ce549"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.8"
+version = "0.1.7"
 
 [[deps.URIs]]
 git-tree-sha1 = "b7a5e99f24892b6824a954199a45e9ffcc1c70f0"
@@ -1389,7 +1411,7 @@ version = "1.1.6+0"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.52.0+1"
+version = "1.48.0+0"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1418,6 +1440,7 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═cb607459-1895-4f97-896d-8bb921b59d9d
 # ╟─0f04bf0f-ec5e-4aed-87f7-af4e8fa23c36
+# ╠═da282e05-ceca-4194-a858-6ea810b0e737
 # ╠═19d12d09-da53-4a30-bf97-0fef4495ae9b
 # ╠═d61f1d85-8f5c-4b0f-93c0-09486ae253e8
 # ╠═aa967b98-7c4e-4848-aedd-54da173ca842
@@ -1428,6 +1451,7 @@ version = "1.4.1+1"
 # ╠═73f08f87-c243-474c-bb45-771e9bbde202
 # ╠═7ac04f87-573e-4ad4-aee9-0098191378fd
 # ╟─46be37c9-dc60-4d82-8b43-26d259d3e1eb
+# ╠═96d0be3a-594e-4137-ae92-e7c7f840ea5b
 # ╠═dcd7e3dc-3340-4ca7-8a12-4ac605233759
 # ╠═18bc9397-3096-44d7-8311-bdc9c626c0ec
 # ╟─e85ffbcf-76f8-4a28-a5f7-f914cec16536
@@ -1445,11 +1469,13 @@ version = "1.4.1+1"
 # ╠═2823370f-3f85-4b7e-85c6-518a9c1bf943
 # ╟─e83cf387-ef65-43a2-8acf-59124861d6ac
 # ╟─5498089b-9661-476a-a894-f09a4f246be7
+# ╠═fd1b372b-800e-45a5-bf1d-0e0232b941d3
 # ╠═85823f56-2c4a-4884-ace8-75b18f2fa7b3
 # ╠═361caf6d-037b-4de0-b52d-5dbbe257d938
 # ╟─7754864a-cafa-47b3-ac94-4ac2f3ad50c0
 # ╠═52bede85-9fca-4279-8444-8722e4b6c40f
 # ╟─c1599ec1-1e63-41ae-88d8-578ae4f2423e
+# ╠═554ac76d-669c-468c-971b-fbf0629305e4
 # ╠═53c577f2-41cb-47be-a92e-262d10c68f11
 # ╠═c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 # ╠═26fa1e20-b0dd-4711-89ac-43cb06dfe92a
