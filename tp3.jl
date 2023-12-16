@@ -16,8 +16,14 @@ md"""
 ## Explicito
 """
 
+# ╔═╡ c69ae198-c55e-4095-a3cb-b5d871afcb56
+md"""
+### _Corrección_
+Ahora las funciones reciben h y calculan dt = rh²/α
+"""
+
 # ╔═╡ 19d12d09-da53-4a30-bf97-0fef4495ae9b
-function calor_explicito_iter(g, Tf, h, α, r=1/2)
+function calor_explicito_iter(g, Tf, h, α = 1, r=1/2)
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -35,11 +41,10 @@ end
 begin
 	g = x -> 1 - x +sin(6*x) + 1/4 *sin(18*x)
 	h = 0.01
-	α = 1
 end
 
 # ╔═╡ aa967b98-7c4e-4848-aedd-54da173ca842
-u, Xs, Ts = calor_explicito_iter(g, 1, h, α)
+u, Xs, Ts = calor_explicito_iter(g, 1, h)
 
 # ╔═╡ 0b43c5ba-5fdc-47be-855b-5f7cf3444ca9
 function plot_calor(u, Xs, Ts; step = 10)
@@ -88,7 +93,7 @@ function calor_explicito(g, Tf, h, α, r=1/2)
 end
 
 # ╔═╡ 7ac04f87-573e-4ad4-aee9-0098191378fd
-plot_calor(calor_explicito(g, 1, h, α)...)
+plot_calor(calor_explicito(g, 1, h)...)
 
 # ╔═╡ 7394e5e0-b27a-4c27-95c5-6b942ae858b0
 md"""
@@ -97,21 +102,15 @@ Acá se ve que no cambia el signo en cada iteración, como sucedía antes.
 """
 
 # ╔═╡ 2f3fec87-ecf9-419c-9d62-77b75512a697
-plot_calor(calor_explicito(g, 0.1, h, α)..., step = 1)
+plot_calor(calor_explicito(g, 0.1, h)..., step = 1)
 
 # ╔═╡ 46be37c9-dc60-4d82-8b43-26d259d3e1eb
 md"""
 ## Implicito
 """
 
-# ╔═╡ 96d0be3a-594e-4137-ae92-e7c7f840ea5b
-md"""
-Implementamos el método implícito para resolver la ecuación del calor. Como tenemos que evaluar la función delta en T+1, hace falta multiplicar por -1 y luego invertir la matriz.
-Hacemos más eficiente el código, haciendo descomposición LU para la matriz de forma que es mucho más sencillo calcular la inversa y no tenemos que hacerlo de nuevo en cada iteración.
-"""
-
 # ╔═╡ dcd7e3dc-3340-4ca7-8a12-4ac605233759
-function calor_implicito(g, Tf, h, α, r=1/2)
+function calor_implicito(g, Tf, h, α=1, r=1/2)
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -128,7 +127,7 @@ function calor_implicito(g, Tf, h, α, r=1/2)
 end
 
 # ╔═╡ 18bc9397-3096-44d7-8311-bdc9c626c0ec
-plot_calor(calor_implicito(g, 1, h, α)...)
+plot_calor(calor_implicito(g, 1, h)...)
 
 # ╔═╡ e77a07b0-d413-4171-bbc7-4653f37d1201
 md"""
@@ -137,7 +136,7 @@ El método implicito también respeta el signo en cada iteración.
 """
 
 # ╔═╡ 3c819922-10f1-4bfa-8a51-3d4f504c1e1c
-plot_calor(calor_implicito(g, 0.01, h, α)..., step = 1)
+plot_calor(calor_implicito(g, 0.01, h)..., step = 1)
 
 # ╔═╡ e85ffbcf-76f8-4a28-a5f7-f914cec16536
 md"""
@@ -171,7 +170,7 @@ Resolvemos el caso bidimensional con un método implícito sin guardar la descom
 """
 
 # ╔═╡ 9c712a54-eb2d-4a51-9df6-7b64c3723490
-function calor_implicito2d_naive(g, Tf, h, α, r=1/2)
+function calor_implicito2d_naive(g, Tf, h, α=1, r=1/2)
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -197,7 +196,7 @@ Además, nos interesa ver cuanto mejora clasificar la matriz como `Symmetric`
 """
 
 # ╔═╡ 9d57cac5-ef36-4bc8-b483-2aabc5edc5c2
-function calor_implicito2d_nosymmetric(g, Tf, h, α, r=1/2)
+function calor_implicito2d_nosymmetric(g, Tf, h, α=1, r=1/2)
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -224,7 +223,7 @@ function calor_implicito2d_nosymmetric(g, Tf, h, α, r=1/2)
 end
 
 # ╔═╡ 17fa5a9a-601e-47a6-8b8e-2f76841a3672
-function calor_implicito2d(g, Tf, h, α, r=1/2)
+function calor_implicito2d(g, Tf, h, α=1, r=1/2)
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -260,11 +259,6 @@ md"""
 ## Heatmap
 """
 
-# ╔═╡ fd1b372b-800e-45a5-bf1d-0e0232b941d3
-md"""
-Ploteamos en 2 dimensiones la solución a la ecuación del calor con condición de contorno Dirichlet.
-"""
-
 # ╔═╡ 85823f56-2c4a-4884-ace8-75b18f2fa7b3
 function plot_calor2d(M, Xs, Ys, Ts)
 	@gif for i in 1:Int(round(length(Ts)*0.1))
@@ -278,13 +272,13 @@ function g2d((x,y))
 end
 
 # ╔═╡ 38ba5b08-83c5-4adf-a029-e1b79d09e5fb
-@benchmark calor_implicito2d_naive(g2d, 1, 0.1, α)
+@benchmark calor_implicito2d_naive(g2d, 1, 0.1)
 
 # ╔═╡ 15761817-9b1a-4eaa-833a-7903f0c58211
-@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.1, α)
+@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.1)
 
 # ╔═╡ 2823370f-3f85-4b7e-85c6-518a9c1bf943
-@benchmark calor_implicito2d(g2d, 1, 0.1, α)
+@benchmark calor_implicito2d(g2d, 1, 0.1)
 
 # ╔═╡ a19364a5-6ebb-40a0-b653-07d4b177d3a1
 function bola((x, y), r = 0.025)
@@ -318,30 +312,19 @@ md"""
 # Difusión con transporte
 """
 
-# ╔═╡ 554ac76d-669c-468c-971b-fbf0629305e4
-md"""
-Modificamos las matrices para cumplir la nueva pde con el término de transporte.
-
-Mostramos dos heatmaps que resuelven la pde con el parámetro de transporte en 0 o en 20 y parece funcionar bien en ese caso. Sin embargo, moviendo un poco los parámetros muy rápido vemos simulaciones que no tienen sentido y que parecieran ser víctimas de error númerico.
-
-Creemos que hay algún error en la implementación de la solución en el caso con transporte y nos gustaría tras una devolución poder arreglarlo.
-
-"""
-
 # ╔═╡ 53c577f2-41cb-47be-a92e-262d10c68f11
 function gtransp((x, y)) return 10*(1-x)*x*(1-y)*y end
 
+# ╔═╡ be77b840-5f8e-44f8-b5f6-3af21bf6d3dd
+md"""
+### _Corrección_
+Como la matriz de iteración de este ejercicio usa la de los anteriores, cuando cambiamos la diagonal de la matriz de calor 2d se arregló.
+"""
+
 # ╔═╡ c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 function matriz_transporte2d(n, m, α, β, dt, h)
-	# A = diagm(
-	# 	0 => (-4*α*dt/h^2-2*β*dt/h)ones(n*m), 
-	# 	1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)], 
-	# 	m+1 => ones(n*(m-1)-1),
-	# 	-1 => repeat([(α*dt/h^2+β*dt/h)ones(n-1)...,0], m)[1:(end-1)],
-	# 	-m-1 => ones(n*(m-1)-1)
-	# )
-	A = matriz_calor2d(n, m, α*dt/(h^2)) # r1 * A - I
-	B = matriz_calor(n*m, β*dt/h) # r2 * B - I
+	A = matriz_calor2d(n, m, α*dt/(h^2))
+	B = matriz_calor(n*m, β*dt/h)
 	return A + B + I
 end
 
@@ -370,18 +353,45 @@ function calor_transporte2d(g, Tf, dt, α, β, h)
 	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
 end
 
+# ╔═╡ 2328407b-22bc-4de2-98ad-3a733e43df55
+md"""
+Transporte con β=0, debería ser igual a un problema de calor puro.
+"""
+
 # ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
 plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 0, 0.02)...)
 
+# ╔═╡ 92c1ee97-09dd-4fff-aa2d-01aa6dbd1431
+md"""
+Transporte con β >> α (si usamos α=0 la matriz es singular) debería haber una 'conservación', el calor se tiene que desplazar horizontalmente sin difusión.
+"""
+
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
-<<<<<<< HEAD
-plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 20, 0.04)...)
-=======
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 1, 0.02)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 5, 0.02)...)
+
+# ╔═╡ fcb54aba-6f3d-42e9-82ed-bfb0521732f4
+md"""
+Transporte con -β >> α.
+"""
+
+# ╔═╡ 8d6a762c-5535-4e1b-a1e9-ff5e689d9526
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, -5, 0.02)...)
+
+# ╔═╡ 31c02b11-7dc5-4c89-94f6-480523ae134b
+md"""
+Transporte con α = β
+"""
+
+# ╔═╡ 2b14ade3-7361-4c9e-937f-1a1e7c66d839
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 1, 0.02)...)
 
 # ╔═╡ f46d38d6-f552-48ea-8c13-71b419209f60
+function puntos((x,y), h = 0.02)
+	return 10(-sin(700h*x-125)+1)*(y-0.5)^2*(1-(y-0.5)^2)
+end
 
->>>>>>> 6784020 (signo)
+# ╔═╡ 86d222fc-bc4f-4fc1-8ad0-d533e8c3f521
+plot_calor2d(calor_transporte2d(puntos, 1, 0.005, 1, 1, 0.02)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -390,15 +400,20 @@ BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+
+[compat]
+BenchmarkTools = "~1.4.0"
+Plots = "~1.39.0"
+PlutoUI = "~0.7.52"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.3"
+julia_version = "1.9.4"
 manifest_format = "2.0"
-project_hash = "01d24fcbe4fe74fdfee7d52e09ce8c5bc5369da4"
+project_hash = "00882a4ae90b205365b1e7340d1625e0bc4a0d72"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -418,9 +433,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.BenchmarkTools]]
 deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+git-tree-sha1 = "f1f03a9fa24271160ed7e73051fba3c1a759b53f"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.3.2"
+version = "1.4.0"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
@@ -746,12 +761,12 @@ version = "0.16.1"
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.3"
+version = "0.6.4"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.84.0+0"
+version = "8.4.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -760,7 +775,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.10.2+0"
+version = "1.11.0+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -838,9 +853,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
-git-tree-sha1 = "0d097476b6c381ab7906460ef1ef1638fbce1d91"
+git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
-version = "1.0.2"
+version = "1.0.3"
 
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
@@ -1053,9 +1068,9 @@ version = "1.2.2"
 
 [[deps.RelocatableFolders]]
 deps = ["SHA", "Scratch"]
-git-tree-sha1 = "90bc7a7c96410424509e4263e277e43250c05691"
+git-tree-sha1 = "ffdaf70d81cf6ff22c2b6e733c900c3321cab864"
 uuid = "05181044-ff0b-4ac5-8273-598c1e38db00"
-version = "1.0.0"
+version = "1.0.1"
 
 [[deps.Requires]]
 deps = ["UUIDs"]
@@ -1149,9 +1164,9 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.13"
 
 [[deps.Tricks]]
-git-tree-sha1 = "aadb748be58b492045b4f56166b5188aa63ce549"
+git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.7"
+version = "0.1.8"
 
 [[deps.URIs]]
 git-tree-sha1 = "b7a5e99f24892b6824a954199a45e9ffcc1c70f0"
@@ -1461,7 +1476,7 @@ version = "1.1.6+0"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.48.0+0"
+version = "1.52.0+1"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1490,11 +1505,7 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═cb607459-1895-4f97-896d-8bb921b59d9d
 # ╟─0f04bf0f-ec5e-4aed-87f7-af4e8fa23c36
-<<<<<<< HEAD
-# ╠═da282e05-ceca-4194-a858-6ea810b0e737
-=======
 # ╟─c69ae198-c55e-4095-a3cb-b5d871afcb56
->>>>>>> 6784020 (signo)
 # ╠═19d12d09-da53-4a30-bf97-0fef4495ae9b
 # ╠═d61f1d85-8f5c-4b0f-93c0-09486ae253e8
 # ╠═aa967b98-7c4e-4848-aedd-54da173ca842
@@ -1508,7 +1519,6 @@ version = "1.4.1+1"
 # ╟─7394e5e0-b27a-4c27-95c5-6b942ae858b0
 # ╠═2f3fec87-ecf9-419c-9d62-77b75512a697
 # ╟─46be37c9-dc60-4d82-8b43-26d259d3e1eb
-# ╠═96d0be3a-594e-4137-ae92-e7c7f840ea5b
 # ╠═dcd7e3dc-3340-4ca7-8a12-4ac605233759
 # ╠═18bc9397-3096-44d7-8311-bdc9c626c0ec
 # ╟─e77a07b0-d413-4171-bbc7-4653f37d1201
@@ -1529,7 +1539,6 @@ version = "1.4.1+1"
 # ╠═2823370f-3f85-4b7e-85c6-518a9c1bf943
 # ╟─e83cf387-ef65-43a2-8acf-59124861d6ac
 # ╟─5498089b-9661-476a-a894-f09a4f246be7
-# ╠═fd1b372b-800e-45a5-bf1d-0e0232b941d3
 # ╠═85823f56-2c4a-4884-ace8-75b18f2fa7b3
 # ╠═361caf6d-037b-4de0-b52d-5dbbe257d938
 # ╠═a19364a5-6ebb-40a0-b653-07d4b177d3a1
@@ -1539,14 +1548,21 @@ version = "1.4.1+1"
 # ╠═0d8b848d-b5d3-4af5-b843-c0289185b53c
 # ╟─f488340b-8b4f-4ebc-8483-1341bcfdb78b
 # ╟─c1599ec1-1e63-41ae-88d8-578ae4f2423e
-# ╠═554ac76d-669c-468c-971b-fbf0629305e4
 # ╠═53c577f2-41cb-47be-a92e-262d10c68f11
+# ╟─be77b840-5f8e-44f8-b5f6-3af21bf6d3dd
 # ╠═c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 # ╠═26fa1e20-b0dd-4711-89ac-43cb06dfe92a
 # ╠═0dd2b5b5-9dde-44f0-9595-75720f6b0d6b
 # ╠═f44e52e3-455f-4e2b-b6f2-8ed84a65f705
+# ╟─2328407b-22bc-4de2-98ad-3a733e43df55
 # ╠═fbed7048-2774-481b-8d84-758c4badd720
+# ╟─92c1ee97-09dd-4fff-aa2d-01aa6dbd1431
 # ╠═c5cb1e80-f749-43d8-a246-74730e19a793
+# ╟─fcb54aba-6f3d-42e9-82ed-bfb0521732f4
+# ╠═8d6a762c-5535-4e1b-a1e9-ff5e689d9526
+# ╟─31c02b11-7dc5-4c89-94f6-480523ae134b
+# ╠═2b14ade3-7361-4c9e-937f-1a1e7c66d839
 # ╠═f46d38d6-f552-48ea-8c13-71b419209f60
+# ╠═86d222fc-bc4f-4fc1-8ad0-d533e8c3f521
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
