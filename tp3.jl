@@ -16,15 +16,9 @@ md"""
 ## Explicito
 """
 
-# ╔═╡ da282e05-ceca-4194-a858-6ea810b0e737
-md"""
-Primero hacemos el algorítmo explícito, que usa la función delta en tiempo T para calcular u en T+1.
-Después lo implementamos matricialmente en vez de iterativamente y mostramos en un gráfico cómo el calor se propaga en 1d con condiciones Dirichlet.
-"""
-
 # ╔═╡ 19d12d09-da53-4a30-bf97-0fef4495ae9b
-function calor_explicito_iter(g, Tf, dt, α, r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_explicito_iter(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	u = zeros(length(Xs),length(Ts))
@@ -40,16 +34,16 @@ end
 # ╔═╡ d61f1d85-8f5c-4b0f-93c0-09486ae253e8
 begin
 	g = x -> 1 - x +sin(6*x) + 1/4 *sin(18*x)
-	dt = 0.0001
+	h = 0.01
 	α = 1
 end
 
 # ╔═╡ aa967b98-7c4e-4848-aedd-54da173ca842
-u, Xs, Ts = calor_explicito_iter(g, 1, dt, α)
+u, Xs, Ts = calor_explicito_iter(g, 1, h, α)
 
 # ╔═╡ 0b43c5ba-5fdc-47be-855b-5f7cf3444ca9
-function plot_calor(u, Xs, Ts)
-	@gif for i in 1:10:Int(round(length(Ts)*0.1))
+function plot_calor(u, Xs, Ts; step = 10)
+	@gif for i in 1:step:Int(round(length(Ts)*0.1))
 		plot(Xs, u[:,i],ylims=(-2,2), legend=false)
 		# for n in 1:Int(round(10*log(i+1))):i
 		for n in 1:100:i
@@ -62,6 +56,12 @@ end
 # ╔═╡ d6576b3f-e379-4e5d-88fb-94f4f04cce03
 plot_calor(u, Xs, Ts)
 
+# ╔═╡ 465089c8-c070-44e8-98eb-79559e26de6c
+md"""
+### _Corrección_
+matriz_calor devuelve la matriz con el signo correcto, en lugar de tener que llamarla y después cambiarle el signo.
+"""
+
 # ╔═╡ 0dfcc5b9-f45a-4f42-9b77-b04d78e0d404
 function matriz_calor(n, r = 1/2)
 	return r*Tridiagonal(-ones(n-1), 2ones(n), -ones(n-1)) - I
@@ -71,14 +71,14 @@ end
 matriz_calor(3)
 
 # ╔═╡ 73f08f87-c243-474c-bb45-771e9bbde202
-function calor_explicito(g, Tf, dt, α, r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_explicito(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	n = length(Xs)
 	u = zeros(n,length(Ts))
 	u[:,1] = g.(Xs)
-	A = matriz_calor(n, r)
+	A = -matriz_calor(n, r)
 	for i in 2:length(Ts)
 		u[:, i] = A * u[:, i-1]
 		u[1, i] = 0
@@ -88,7 +88,16 @@ function calor_explicito(g, Tf, dt, α, r=1/2)
 end
 
 # ╔═╡ 7ac04f87-573e-4ad4-aee9-0098191378fd
-plot_calor(calor_explicito(g, 1, dt, α)...)
+plot_calor(calor_explicito(g, 1, h, α)...)
+
+# ╔═╡ 7394e5e0-b27a-4c27-95c5-6b942ae858b0
+md"""
+### _Corrección_
+Acá se ve que no cambia el signo en cada iteración, como sucedía antes.
+"""
+
+# ╔═╡ 2f3fec87-ecf9-419c-9d62-77b75512a697
+plot_calor(calor_explicito(g, 0.1, h, α)..., step = 1)
 
 # ╔═╡ 46be37c9-dc60-4d82-8b43-26d259d3e1eb
 md"""
@@ -102,14 +111,14 @@ Hacemos más eficiente el código, haciendo descomposición LU para la matriz de
 """
 
 # ╔═╡ dcd7e3dc-3340-4ca7-8a12-4ac605233759
-function calor_implicito(g, Tf, dt, α, r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_implicito(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	n = length(Xs)
 	u = zeros(length(Xs),length(Ts))
 	u[:,1] = g.(Xs)
-	A = -matriz_calor(n, r) - 2I
+	A = matriz_calor(n, r) + 2I
 	for i in 2:length(Ts)
 		u[:, i] = A \ u[:, i-1]
 		u[1, i] = 0
@@ -119,11 +128,26 @@ function calor_implicito(g, Tf, dt, α, r=1/2)
 end
 
 # ╔═╡ 18bc9397-3096-44d7-8311-bdc9c626c0ec
-plot_calor(calor_implicito(g, 1, dt, α)...)
+plot_calor(calor_implicito(g, 1, h, α)...)
+
+# ╔═╡ e77a07b0-d413-4171-bbc7-4653f37d1201
+md"""
+### _Corrección_
+El método implicito también respeta el signo en cada iteración.
+"""
+
+# ╔═╡ 3c819922-10f1-4bfa-8a51-3d4f504c1e1c
+plot_calor(calor_implicito(g, 0.01, h, α)..., step = 1)
 
 # ╔═╡ e85ffbcf-76f8-4a28-a5f7-f914cec16536
 md"""
 # Velocidad de ejecucion
+"""
+
+# ╔═╡ 05058a1c-a783-451d-85c5-15674a6c2b99
+md"""
+### _Corrección_
+Movimos las diagonales de afuera una posición más adentro.
 """
 
 # ╔═╡ df8ecd7c-dc1e-43cc-9b90-4853b0a84fe5
@@ -131,9 +155,9 @@ function matriz_calor2d(n, m, r=1/2)
 	A = diagm(
 		0 => -4*ones(n*m), 
 		1 => repeat([ones(n-1)...,0], m)[1:(end-1)], 
-		m+1 => ones(n*(m-1)-1),
+		m => ones(n*(m-1)-1),
 		-1 => repeat([ones(n-1)...,0], m)[1:(end-1)],
-		-m-1 => ones(n*(m-1)-1)
+		-m => ones(n*(m-1)-1)
 	)
 	return Symmetric(r*A - I)
 end
@@ -147,8 +171,8 @@ Resolvemos el caso bidimensional con un método implícito sin guardar la descom
 """
 
 # ╔═╡ 9c712a54-eb2d-4a51-9df6-7b64c3723490
-function calor_implicito2d_naive(g,Tf,dt,α,r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_implicito2d_naive(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	Ys = 0:h:1
@@ -173,8 +197,8 @@ Además, nos interesa ver cuanto mejora clasificar la matriz como `Symmetric`
 """
 
 # ╔═╡ 9d57cac5-ef36-4bc8-b483-2aabc5edc5c2
-function calor_implicito2d_nosymmetric(g,Tf,dt,α,r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_implicito2d_nosymmetric(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	Ys = 0:h:1
@@ -200,8 +224,8 @@ function calor_implicito2d_nosymmetric(g,Tf,dt,α,r=1/2)
 end
 
 # ╔═╡ 17fa5a9a-601e-47a6-8b8e-2f76841a3672
-function calor_implicito2d(g,Tf,dt,α,r=1/2)
-	h = sqrt(α * dt / r) 
+function calor_implicito2d(g, Tf, h, α, r=1/2)
+	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	Ys = 0:h:1
@@ -254,13 +278,18 @@ function g2d((x,y))
 end
 
 # ╔═╡ 38ba5b08-83c5-4adf-a029-e1b79d09e5fb
-@benchmark sol_implicito2d_naive = calor_implicito2d_naive(g2d, 1, 0.001, 1)
+@benchmark calor_implicito2d_naive(g2d, 1, 0.1, α)
 
 # ╔═╡ 15761817-9b1a-4eaa-833a-7903f0c58211
-@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.001, 1)
+@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.1, α)
 
 # ╔═╡ 2823370f-3f85-4b7e-85c6-518a9c1bf943
-@benchmark sol_implicito2d = calor_implicito2d(g2d, 1, 0.001, 1)
+@benchmark calor_implicito2d(g2d, 1, 0.1, α)
+
+# ╔═╡ a19364a5-6ebb-40a0-b653-07d4b177d3a1
+function bola((x, y), r = 0.025)
+	return (x-0.5)^2+(y-0.5)^2 < r
+end
 
 # ╔═╡ 7754864a-cafa-47b3-ac94-4ac2f3ad50c0
 md"""
@@ -268,7 +297,21 @@ Ahora, nos guardamos la descomposición LU de "A"
 """
 
 # ╔═╡ 52bede85-9fca-4279-8444-8722e4b6c40f
-plot_calor2d(calor_implicito2d(g2d, 1, 0.001, 1)...)
+plot_calor2d(calor_implicito2d(g2d, 0.2, 0.02, 1)...)
+
+# ╔═╡ 8b30a0cc-f0a8-4568-8fe2-3b390bbb2e9f
+md"""
+### _Corrección_
+Construimos la matriz de calor y hacemos la prueba con la condición inicial característica de una bola centrada (0.5, 0.5)
+"""
+
+# ╔═╡ 0d8b848d-b5d3-4af5-b843-c0289185b53c
+plot_calor2d(calor_implicito2d(bola, 0.2, 0.02, 1)...)
+
+# ╔═╡ f488340b-8b4f-4ebc-8483-1341bcfdb78b
+md"""
+Ahora la difusión es simétrica.
+"""
 
 # ╔═╡ c1599ec1-1e63-41ae-88d8-578ae4f2423e
 md"""
@@ -328,10 +371,17 @@ function calor_transporte2d(g, Tf, dt, α, β, h)
 end
 
 # ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
-plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 0, 0.04)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 0, 0.02)...)
 
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
+<<<<<<< HEAD
 plot_calor2d(calor_transporte2d(gtransp, 1, 0.005, 1, 20, 0.04)...)
+=======
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 1, 0.02)...)
+
+# ╔═╡ f46d38d6-f552-48ea-8c13-71b419209f60
+
+>>>>>>> 6784020 (signo)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1440,22 +1490,32 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═cb607459-1895-4f97-896d-8bb921b59d9d
 # ╟─0f04bf0f-ec5e-4aed-87f7-af4e8fa23c36
+<<<<<<< HEAD
 # ╠═da282e05-ceca-4194-a858-6ea810b0e737
+=======
+# ╟─c69ae198-c55e-4095-a3cb-b5d871afcb56
+>>>>>>> 6784020 (signo)
 # ╠═19d12d09-da53-4a30-bf97-0fef4495ae9b
 # ╠═d61f1d85-8f5c-4b0f-93c0-09486ae253e8
 # ╠═aa967b98-7c4e-4848-aedd-54da173ca842
 # ╠═0b43c5ba-5fdc-47be-855b-5f7cf3444ca9
 # ╠═d6576b3f-e379-4e5d-88fb-94f4f04cce03
+# ╟─465089c8-c070-44e8-98eb-79559e26de6c
 # ╠═0dfcc5b9-f45a-4f42-9b77-b04d78e0d404
 # ╠═892f939b-ba17-49b7-a57d-6cc89da1938c
 # ╠═73f08f87-c243-474c-bb45-771e9bbde202
 # ╠═7ac04f87-573e-4ad4-aee9-0098191378fd
+# ╟─7394e5e0-b27a-4c27-95c5-6b942ae858b0
+# ╠═2f3fec87-ecf9-419c-9d62-77b75512a697
 # ╟─46be37c9-dc60-4d82-8b43-26d259d3e1eb
 # ╠═96d0be3a-594e-4137-ae92-e7c7f840ea5b
 # ╠═dcd7e3dc-3340-4ca7-8a12-4ac605233759
 # ╠═18bc9397-3096-44d7-8311-bdc9c626c0ec
+# ╟─e77a07b0-d413-4171-bbc7-4653f37d1201
+# ╠═3c819922-10f1-4bfa-8a51-3d4f504c1e1c
 # ╟─e85ffbcf-76f8-4a28-a5f7-f914cec16536
 # ╠═313d2f4c-179e-4ef5-a5ba-e6c6e780be8b
+# ╟─05058a1c-a783-451d-85c5-15674a6c2b99
 # ╠═df8ecd7c-dc1e-43cc-9b90-4853b0a84fe5
 # ╠═3379d377-c2bd-4bcc-9fce-fa38f45cbabc
 # ╟─b002851b-da74-4ec1-858b-b5435105a21a
@@ -1472,8 +1532,12 @@ version = "1.4.1+1"
 # ╠═fd1b372b-800e-45a5-bf1d-0e0232b941d3
 # ╠═85823f56-2c4a-4884-ace8-75b18f2fa7b3
 # ╠═361caf6d-037b-4de0-b52d-5dbbe257d938
+# ╠═a19364a5-6ebb-40a0-b653-07d4b177d3a1
 # ╟─7754864a-cafa-47b3-ac94-4ac2f3ad50c0
 # ╠═52bede85-9fca-4279-8444-8722e4b6c40f
+# ╟─8b30a0cc-f0a8-4568-8fe2-3b390bbb2e9f
+# ╠═0d8b848d-b5d3-4af5-b843-c0289185b53c
+# ╟─f488340b-8b4f-4ebc-8483-1341bcfdb78b
 # ╟─c1599ec1-1e63-41ae-88d8-578ae4f2423e
 # ╠═554ac76d-669c-468c-971b-fbf0629305e4
 # ╠═53c577f2-41cb-47be-a92e-262d10c68f11
@@ -1483,5 +1547,6 @@ version = "1.4.1+1"
 # ╠═f44e52e3-455f-4e2b-b6f2-8ed84a65f705
 # ╠═fbed7048-2774-481b-8d84-758c4badd720
 # ╠═c5cb1e80-f749-43d8-a246-74730e19a793
+# ╠═f46d38d6-f552-48ea-8c13-71b419209f60
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
