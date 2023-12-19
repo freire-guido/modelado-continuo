@@ -19,11 +19,12 @@ md"""
 # ╔═╡ c69ae198-c55e-4095-a3cb-b5d871afcb56
 md"""
 ### _Corrección_
-Ahora las funciones reciben h y calculan dt = rh²/α
+Ahora las funciones reciben n, la cantidad de particiones en el ESPACIO. A partir de calculamos dt y desde dt sacamos h.
 """
 
 # ╔═╡ 19d12d09-da53-4a30-bf97-0fef4495ae9b
-function calor_explicito_iter(g, Tf, h, α = 1, r=1/2)
+function calor_explicito_iter(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -40,11 +41,11 @@ end
 # ╔═╡ d61f1d85-8f5c-4b0f-93c0-09486ae253e8
 begin
 	g = x -> 1 - x +sin(6*x) + 1/4 *sin(18*x)
-	h = 0.01
+	n = 100
 end
 
 # ╔═╡ aa967b98-7c4e-4848-aedd-54da173ca842
-u, Xs, Ts = calor_explicito_iter(g, 1, h)
+u, Xs, Ts = calor_explicito_iter(g, 1, n)
 
 # ╔═╡ 0b43c5ba-5fdc-47be-855b-5f7cf3444ca9
 function plot_calor(u, Xs, Ts; step = 10)
@@ -76,7 +77,8 @@ end
 matriz_calor(3)
 
 # ╔═╡ 73f08f87-c243-474c-bb45-771e9bbde202
-function calor_explicito(g, Tf, h, α, r=1/2)
+function calor_explicito(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -93,7 +95,7 @@ function calor_explicito(g, Tf, h, α, r=1/2)
 end
 
 # ╔═╡ 7ac04f87-573e-4ad4-aee9-0098191378fd
-plot_calor(calor_explicito(g, 1, h)...)
+plot_calor(calor_explicito(g, 1, n)...)
 
 # ╔═╡ 7394e5e0-b27a-4c27-95c5-6b942ae858b0
 md"""
@@ -102,7 +104,7 @@ Acá se ve que no cambia el signo en cada iteración, como sucedía antes.
 """
 
 # ╔═╡ 2f3fec87-ecf9-419c-9d62-77b75512a697
-plot_calor(calor_explicito(g, 0.1, h)..., step = 1)
+plot_calor(calor_explicito(g, 0.1, n)..., step = 1)
 
 # ╔═╡ 46be37c9-dc60-4d82-8b43-26d259d3e1eb
 md"""
@@ -110,7 +112,8 @@ md"""
 """
 
 # ╔═╡ dcd7e3dc-3340-4ca7-8a12-4ac605233759
-function calor_implicito(g, Tf, h, α=1, r=1/2)
+function calor_implicito(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -127,7 +130,7 @@ function calor_implicito(g, Tf, h, α=1, r=1/2)
 end
 
 # ╔═╡ 18bc9397-3096-44d7-8311-bdc9c626c0ec
-plot_calor(calor_implicito(g, 1, h)...)
+plot_calor(calor_implicito(g, 1, n)...)
 
 # ╔═╡ e77a07b0-d413-4171-bbc7-4653f37d1201
 md"""
@@ -136,7 +139,7 @@ El método implicito también respeta el signo en cada iteración.
 """
 
 # ╔═╡ 3c819922-10f1-4bfa-8a51-3d4f504c1e1c
-plot_calor(calor_implicito(g, 0.01, h)..., step = 1)
+plot_calor(calor_implicito(g, 0.1, n)..., step = 1)
 
 # ╔═╡ e85ffbcf-76f8-4a28-a5f7-f914cec16536
 md"""
@@ -170,7 +173,8 @@ Resolvemos el caso bidimensional con un método implícito sin guardar la descom
 """
 
 # ╔═╡ 9c712a54-eb2d-4a51-9df6-7b64c3723490
-function calor_implicito2d_naive(g, Tf, h, α=1, r=1/2)
+function calor_implicito2d_naive(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -196,7 +200,8 @@ Además, nos interesa ver cuanto mejora clasificar la matriz como `Symmetric`
 """
 
 # ╔═╡ 9d57cac5-ef36-4bc8-b483-2aabc5edc5c2
-function calor_implicito2d_nosymmetric(g, Tf, h, α=1, r=1/2)
+function calor_implicito2d_nosymmetric(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -223,7 +228,8 @@ function calor_implicito2d_nosymmetric(g, Tf, h, α=1, r=1/2)
 end
 
 # ╔═╡ 17fa5a9a-601e-47a6-8b8e-2f76841a3672
-function calor_implicito2d(g, Tf, h, α=1, r=1/2)
+function calor_implicito2d(g, Tf, n, α=1, r=1/2)
+	h = 1/n
 	dt = r*(h^2)/α
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
@@ -272,13 +278,13 @@ function g2d((x,y))
 end
 
 # ╔═╡ 38ba5b08-83c5-4adf-a029-e1b79d09e5fb
-@benchmark calor_implicito2d_naive(g2d, 1, 0.1)
+@benchmark calor_implicito2d_naive(g2d, 1, 10)
 
 # ╔═╡ 15761817-9b1a-4eaa-833a-7903f0c58211
-@benchmark calor_implicito2d_nosymmetric(g2d, 1, 0.1)
+@benchmark calor_implicito2d_nosymmetric(g2d, 1, 10)
 
 # ╔═╡ 2823370f-3f85-4b7e-85c6-518a9c1bf943
-@benchmark calor_implicito2d(g2d, 1, 0.1)
+@benchmark calor_implicito2d(g2d, 1, 10)
 
 # ╔═╡ a19364a5-6ebb-40a0-b653-07d4b177d3a1
 function bola((x, y), r = 0.025)
@@ -291,7 +297,7 @@ Ahora, nos guardamos la descomposición LU de "A"
 """
 
 # ╔═╡ 52bede85-9fca-4279-8444-8722e4b6c40f
-plot_calor2d(calor_implicito2d(g2d, 0.2, 0.02, 1)...)
+plot_calor2d(calor_implicito2d(g2d, 0.2, 25)...)
 
 # ╔═╡ 8b30a0cc-f0a8-4568-8fe2-3b390bbb2e9f
 md"""
@@ -300,7 +306,7 @@ Construimos la matriz de calor y hacemos la prueba con la condición inicial car
 """
 
 # ╔═╡ 0d8b848d-b5d3-4af5-b843-c0289185b53c
-plot_calor2d(calor_implicito2d(bola, 0.2, 0.02, 1)...)
+plot_calor2d(calor_implicito2d(bola, 0.2, 25)...)
 
 # ╔═╡ f488340b-8b4f-4ebc-8483-1341bcfdb78b
 md"""
@@ -335,7 +341,8 @@ matriz_transporte2d(3, 3, 1, 2, 0.001, 1)
 matriz_transporte2d(3, 3, 1, 10, 0.001, 1)
 
 # ╔═╡ f44e52e3-455f-4e2b-b6f2-8ed84a65f705
-function calor_transporte2d(g, Tf, dt, α, β, h)
+function calor_transporte2d(g, Tf, dt, α, β, n)
+	h = 1/n
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	Ys = 0:h:1
@@ -359,7 +366,7 @@ Transporte con β=0, debería ser igual a un problema de calor puro.
 """
 
 # ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 0, 0.02)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 0, 25)...)
 
 # ╔═╡ 92c1ee97-09dd-4fff-aa2d-01aa6dbd1431
 md"""
@@ -367,7 +374,7 @@ Transporte con β >> α (si usamos α=0 la matriz es singular) debería haber un
 """
 
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 5, 0.02)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 5, 50)...)
 
 # ╔═╡ fcb54aba-6f3d-42e9-82ed-bfb0521732f4
 md"""
@@ -375,7 +382,7 @@ Transporte con -β >> α.
 """
 
 # ╔═╡ 8d6a762c-5535-4e1b-a1e9-ff5e689d9526
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, -5, 0.02)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, -50, 50)...)
 
 # ╔═╡ 31c02b11-7dc5-4c89-94f6-480523ae134b
 md"""
@@ -383,7 +390,7 @@ Transporte con α = β
 """
 
 # ╔═╡ 2b14ade3-7361-4c9e-937f-1a1e7c66d839
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 1, 0.02)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 1, 50)...)
 
 # ╔═╡ f46d38d6-f552-48ea-8c13-71b419209f60
 function puntos((x,y), h = 0.02)
@@ -391,7 +398,7 @@ function puntos((x,y), h = 0.02)
 end
 
 # ╔═╡ 86d222fc-bc4f-4fc1-8ad0-d533e8c3f521
-plot_calor2d(calor_transporte2d(puntos, 1, 0.005, 1, 1, 0.02)...)
+plot_calor2d(calor_transporte2d(puntos, 1, 0.005, 1, 1, 50)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
