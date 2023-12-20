@@ -328,10 +328,26 @@ Como la matriz de iteración de este ejercicio usa la de los anteriores, cuando 
 """
 
 # ╔═╡ c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
-function matriz_transporte2d(n, m, α, β, dt, h)
-	A = matriz_calor2d(n, m, α*dt/(h^2))
-	B = matriz_calor(n*m, β*dt/h)
-	return A + B + I
+function matriz_transporte2d(n, m, r, s)
+	n = n+1
+	m = m+2
+	A = diagm(
+		0 => r*4*ones(n*m), 
+		1 => (-r-s)*repeat([ones(n-1)...,0], m)[1:(end-1)], 
+		m => (-r)*ones(n*(m-1)),
+		-1 => (-r+s)*repeat([ones(n-1)...,0], m)[1:(end-1)],
+		-m => (-r)*ones(n*(m-1))
+	)
+	for i in 1:n
+		A[i,i+n+1] = -2*r
+		A[(n*m)-n+i+1,(m*n)-2n+i] = -2*r
+	end
+
+	for i in 1:(m-1)
+		A[n*i,n*(i-1)+1] = -r-s
+		A[n*(i-1)+1,n*i] = -r+s
+	end
+	return A + I
 end
 
 # ╔═╡ 26fa1e20-b0dd-4711-89ac-43cb06dfe92a
