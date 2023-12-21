@@ -329,21 +329,18 @@ Como la matriz de iteración de este ejercicio usa la de los anteriores, cuando 
 
 # ╔═╡ c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 function matriz_transporte2d(n, m, r, s)
-	n = n+1
-	m = m+2
 	A = diagm(
 		0 => r*4*ones(n*m), 
 		1 => (-r-s)*repeat([ones(n-1)...,0], m)[1:(end-1)], 
-		m => (-r)*ones(n*(m-1)),
+		m-1 => (-r)*ones(n*(m-1)),
 		-1 => (-r+s)*repeat([ones(n-1)...,0], m)[1:(end-1)],
-		-m => (-r)*ones(n*(m-1))
+		-m+1 => (-r)*ones(n*(m-1))
 	)
 	for i in 1:n
-		A[i,i+n+1] = -2*r
-		A[(n*m)-n+i+1,(m*n)-2n+i] = -2*r
+		A[i,i+n] = -2*r
+		A[(n*m)-n+i,(m*n)-2n+i] = -2*r
 	end
-
-	for i in 1:(m-1)
+	for i in 1:m
 		A[n*i,n*(i-1)+1] = -r-s
 		A[n*(i-1)+1,n*i] = -r+s
 	end
@@ -351,10 +348,10 @@ function matriz_transporte2d(n, m, r, s)
 end
 
 # ╔═╡ 26fa1e20-b0dd-4711-89ac-43cb06dfe92a
-matriz_transporte2d(3, 3, 1, 2, 0.001, 1)
+heatmap(matriz_transporte2d(3+1, 3+2, 10, 5))
 
-# ╔═╡ 0dd2b5b5-9dde-44f0-9595-75720f6b0d6b
-matriz_transporte2d(3, 3, 1, 10, 0.001, 1)
+# ╔═╡ 3dc65713-d45e-4c3c-92fe-26785fce6de8
+matriz_transporte2d(1+1, 1+2, 10, 1)
 
 # ╔═╡ f44e52e3-455f-4e2b-b6f2-8ed84a65f705
 function calor_transporte2d(g, Tf, dt, α, β, n)
@@ -362,18 +359,19 @@ function calor_transporte2d(g, Tf, dt, α, β, n)
 	Ts = 0:dt:Tf
 	Xs = 0:h:1
 	Ys = 0:h:1
-	n = length(Xs)
-	m = length(Ys)
-	u = zeros(n * m, length(Ts))
-	u[:,1] = vcat(g.(collect(Base.product(Xs, Ys)))...)
-	descA = lu(-matriz_transporte2d(n,m,α,β,dt,h))
+	I = length(Xs) + 1
+	J = length(Ys) + 2
+	u = zeros(I * J, length(Ts))
+	for x in 2:(I-1)
+		for y in 1:(J-2)
+			u[y*I+x,1] = g((Xs[x], Ys[y]))
+		end
+	end
+	descA = lu(matriz_transporte2d(I, J, dt*α/(h^2), dt*β/(2h)))
 	for t in 2:(length(Ts))
 		u[:,t] = descA \ u[:,t-1]
-		u[collect(1:end) .% n .== 0, t] = u[collect(1:end) .% n .== 1, t]
-		u[1:m, t] = u[(m+1):2*m, t]
-		u[(end-m+1):end, t] = u[(end-2*m+1):(end-m), t]
 	end
-	return reshape(u,(n, m, length(Ts))), Xs, Ys, Ts
+	return reshape(u,(I, J, length(Ts))), Xs, Ys, Ts
 end
 
 # ╔═╡ 2328407b-22bc-4de2-98ad-3a733e43df55
@@ -382,7 +380,7 @@ Transporte con β=0, debería ser igual a un problema de calor puro.
 """
 
 # ╔═╡ fbed7048-2774-481b-8d84-758c4badd720
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 0, 25)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.2, 0, 25)...)
 
 # ╔═╡ 92c1ee97-09dd-4fff-aa2d-01aa6dbd1431
 md"""
@@ -390,7 +388,10 @@ Transporte con β >> α (si usamos α=0 la matriz es singular) debería haber un
 """
 
 # ╔═╡ c5cb1e80-f749-43d8-a246-74730e19a793
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 5, 50)...)
+plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, 1, 50)...)
+
+# ╔═╡ dace760a-fc9e-46cb-81d0-09bddbd4435a
+plot_calor2d(calor_transporte2d(bola, 2.01, 0.005, 0, 5, 50)...)
 
 # ╔═╡ fcb54aba-6f3d-42e9-82ed-bfb0521732f4
 md"""
@@ -398,7 +399,7 @@ Transporte con -β >> α.
 """
 
 # ╔═╡ 8d6a762c-5535-4e1b-a1e9-ff5e689d9526
-plot_calor2d(calor_transporte2d(bola, 1, 0.005, 0.1, -50, 50)...)
+plot_calor2d(calor_transporte2d(bola, 2.01, 0.005, 0, -5, 50)...)
 
 # ╔═╡ 31c02b11-7dc5-4c89-94f6-480523ae134b
 md"""
@@ -407,14 +408,6 @@ Transporte con α = β
 
 # ╔═╡ 2b14ade3-7361-4c9e-937f-1a1e7c66d839
 plot_calor2d(calor_transporte2d(bola, 1, 0.005, 1, 1, 50)...)
-
-# ╔═╡ f46d38d6-f552-48ea-8c13-71b419209f60
-function puntos((x,y), h = 0.02)
-	return 10(-sin(700h*x-125)+1)*(y-0.5)^2*(1-(y-0.5)^2)
-end
-
-# ╔═╡ 86d222fc-bc4f-4fc1-8ad0-d533e8c3f521
-plot_calor2d(calor_transporte2d(puntos, 1, 0.005, 1, 1, 50)...)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1575,17 +1568,16 @@ version = "1.4.1+1"
 # ╟─be77b840-5f8e-44f8-b5f6-3af21bf6d3dd
 # ╠═c3a1ebdf-e2ab-41c5-af49-425e4c61cb86
 # ╠═26fa1e20-b0dd-4711-89ac-43cb06dfe92a
-# ╠═0dd2b5b5-9dde-44f0-9595-75720f6b0d6b
+# ╠═3dc65713-d45e-4c3c-92fe-26785fce6de8
 # ╠═f44e52e3-455f-4e2b-b6f2-8ed84a65f705
 # ╟─2328407b-22bc-4de2-98ad-3a733e43df55
 # ╠═fbed7048-2774-481b-8d84-758c4badd720
 # ╟─92c1ee97-09dd-4fff-aa2d-01aa6dbd1431
 # ╠═c5cb1e80-f749-43d8-a246-74730e19a793
+# ╠═dace760a-fc9e-46cb-81d0-09bddbd4435a
 # ╟─fcb54aba-6f3d-42e9-82ed-bfb0521732f4
 # ╠═8d6a762c-5535-4e1b-a1e9-ff5e689d9526
 # ╟─31c02b11-7dc5-4c89-94f6-480523ae134b
 # ╠═2b14ade3-7361-4c9e-937f-1a1e7c66d839
-# ╠═f46d38d6-f552-48ea-8c13-71b419209f60
-# ╠═86d222fc-bc4f-4fc1-8ad0-d533e8c3f521
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
